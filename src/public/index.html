@@ -83,7 +83,8 @@
 
         #qr-code {
             max-width: 100%;
-            display: none;
+            border-radius: 8px;
+            margin-bottom: 16px;
         }
 
         .loader {
@@ -115,7 +116,7 @@
 
     <div class="qr-container">
         <div id="loader" class="loader"></div>
-        <img id="qr-code" alt="Scan me!" />
+        <img id="qr-code" class="hidden" alt="Scan me!" />
         <p id="qr-instruction" class="hidden" style="margin-top: 16px; margin-bottom: 0;">
             Buka WhatsApp di HP Anda,<br>ketuk menu dan pilih <b>Perangkat Tertaut</b>,<br>lalu scan QR code di atas.
         </p>
