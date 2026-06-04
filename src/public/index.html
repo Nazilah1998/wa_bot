@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bot Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --primary: #00a884;
+            --text-dark: #111b21;
+            --text-light: #54656f;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--text-dark);
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        p {
+            color: var(--text-light);
+            margin-bottom: 24px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .status-badge.connecting {
+            background-color: #ffe0b2;
+            color: #e65100;
+        }
+
+        .status-badge.connected {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .status-badge.disconnected {
+            background-color: #ffcdd2;
+            color: #c62828;
+        }
+
+        .qr-container {
+            background-color: var(--bg-color);
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #qr-code {
+            max-width: 100%;
+            display: none;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>WhatsApp Bot</h1>
+    <p>Sistem Pelayanan Terpadu Satu Pintu</p>
+
+    <div id="status-badge" class="status-badge connecting">Memulai sistem...</div>
+
+    <div class="qr-container">
+        <div id="loader" class="loader"></div>
+        <img id="qr-code" alt="Scan me!" />
+        <p id="qr-instruction" class="hidden" style="margin-top: 16px; margin-bottom: 0;">
+            Buka WhatsApp di HP Anda,<br>ketuk menu dan pilih <b>Perangkat Tertaut</b>,<br>lalu scan QR code di atas.
+        </p>
+        <p id="connected-message" class="hidden" style="margin: 0; color: #2e7d32; font-weight: bold;">
+            Bot sudah terhubung dan siap merespons pesan!
+        </p>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    const statusBadge = document.getElementById('status-badge');
+    const qrCode = document.getElementById('qr-code');
+    const loader = document.getElementById('loader');
+    const qrInstruction = document.getElementById('qr-instruction');
+    const connectedMessage = document.getElementById('connected-message');
+
+    function updateStatus(status, text) {
+        statusBadge.className = `status-badge ${status}`;
+        statusBadge.innerText = text;
+
+        if (status === 'connected') {
+            loader.classList.add('hidden');
+            qrCode.classList.add('hidden');
+            qrInstruction.classList.add('hidden');
+            connectedMessage.classList.remove('hidden');
+        } else if (status === 'disconnected') {
+            loader.classList.remove('hidden');
+            qrCode.classList.add('hidden');
+            qrInstruction.classList.add('hidden');
+            connectedMessage.classList.add('hidden');
+        }
+    }
+
+    // Mendengarkan update status koneksi
+    socket.on('status', (data) => {
+        if (data.status === 'open') {
+            updateStatus('connected', 'Terhubung ✅');
+        } else if (data.status === 'close' || data.status === 'connecting') {
+            updateStatus('disconnected', 'Menunggu Koneksi 🔄');
+        }
+    });
+
+    // Mendengarkan update QR code
+    socket.on('qr', (qrSrc) => {
+        updateStatus('connecting', 'Silakan Scan QR 📱');
+        loader.classList.add('hidden');
+        connectedMessage.classList.add('hidden');
+        
+        qrCode.src = qrSrc;
+        qrCode.classList.remove('hidden');
+        qrInstruction.classList.remove('hidden');
+    });
+
+    // Jika socket terputus
+    socket.on('disconnect', () => {
+        updateStatus('disconnected', 'Server Terputus ❌');
+    });
+
+</script>
+</body>
+</html>
