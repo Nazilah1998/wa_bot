@@ -31,6 +31,24 @@ try {
     .catch(err => console.error('Gagal reset antrean:', err.message));
 } catch (e) {}
 
+// Fungsi aman untuk menghapus data sesi (Menghindari error EBUSY jika folder adalah Docker Volume)
+function clearAuthFolder() {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = 'auth_info_baileys';
+  if (fs.existsSync(dir)) {
+    try {
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        fs.rmSync(path.join(dir, file), { recursive: true, force: true });
+      }
+      console.log('✅ Data kredensial lokal berhasil dibersihkan.');
+    } catch (err) {
+      console.error('Gagal membersihkan isi folder auth:', err.message);
+    }
+  }
+}
+
 // --- API ENDPOINTS ---
 
 // 1. API Endpoint untuk mengirim pesan (Ditembak oleh n8n atau Dashboard)
@@ -120,11 +138,8 @@ app.post('/api/logout', async (req, res) => {
       await globalSock.logout();
     }
     
-    // Hapus folder kredensial
-    const fs = require('fs');
-    if (fs.existsSync('auth_info_baileys')) {
-      fs.rmSync('auth_info_baileys', { recursive: true, force: true });
-    }
+    // Hapus isi folder kredensial
+    clearAuthFolder();
 
     qrCodeData = null;
     connectionStatus = 'connecting';
@@ -160,8 +175,7 @@ async function connectToWhatsApp() {
     saveCreds = authState.saveCreds;
   } catch (err) {
     console.error('Data kredensial WhatsApp rusak. Mereset sesi...', err.message);
-    const fs = require('fs');
-    if (fs.existsSync('auth_info_baileys')) fs.rmSync('auth_info_baileys', { recursive: true, force: true });
+    clearAuthFolder();
     return process.exit(1); // Restart process automatically
   }
 
@@ -202,10 +216,7 @@ async function connectToWhatsApp() {
         setTimeout(connectToWhatsApp, 3000); // Jeda 3 detik cegah reconnect loop
       } else {
         console.log('Sesi dihapus dari HP. Menghapus data sesi lokal...');
-        const fs = require('fs');
-        if (fs.existsSync('auth_info_baileys')) {
-          fs.rmSync('auth_info_baileys', { recursive: true, force: true });
-        }
+        clearAuthFolder();
         connectionStatus = 'connecting';
         io.emit('status', { status: 'disconnected' });
         // Restart proses otomatis (biarkan Coolify yang membangkitkan ulang)
