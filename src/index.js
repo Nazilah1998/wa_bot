@@ -22,6 +22,15 @@ let qrCodeData = null;
 let connectionStatus = 'connecting';
 let globalSock = null; // Menyimpan instance socket whatsapp
 
+// --- RECOVERY ANTREAN STUCK (SAAT RESTART) ---
+// Jika bot mati mendadak saat status sedang 'processing', reset kembali ke 'pending'
+try {
+  const db = require('./db/index');
+  db.query("UPDATE ptsp_whatsapp_outbox SET status = 'pending' WHERE status = 'processing'")
+    .then(() => console.log('✅ Pembersihan antrean (stuck queue) selesai.'))
+    .catch(err => console.error('Gagal reset antrean:', err.message));
+} catch (e) {}
+
 // --- API ENDPOINTS ---
 
 // 1. API Endpoint untuk mengirim pesan (Ditembak oleh n8n atau Dashboard)
@@ -57,19 +66,23 @@ app.post('/api/send', async (req, res) => {
     
     await globalSock.sendMessage(formattedTo, { text: text });
 
-    // Simpan ke log DB (Pesan Keluar)
-    const db = require('./db');
-    
-    // Catat kontak penerima secara otomatis
-    await db.query(
-      "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
-      [formattedTo, 'Pemohon / Klien']
-    );
+    try {
+      // Simpan ke log DB (Pesan Keluar)
+      const db = require('./db');
+      
+      // Catat kontak penerima secara otomatis
+      await db.query(
+        "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
+        [formattedTo, 'Pemohon / Klien']
+      );
 
-    await db.query(
-      "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
-      [formattedTo, true, 'conversation', text, Math.floor(Date.now() / 1000)]
-    );
+      await db.query(
+        "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
+        [formattedTo, true, 'conversation', text, Math.floor(Date.now() / 1000)]
+      );
+    } catch (dbErr) {
+      console.error('Pesan WA terkirim, tapi gagal mencatat log ke DB:', dbErr.message);
+    }
 
     res.json({ success: true, message: 'Pesan berhasil dikirim' });
   } catch (err) {
@@ -92,8 +105,8 @@ app.get('/api/messages', async (req, res) => {
 // 3. API Endpoint untuk mengambil kontak (Untuk Dashboard)
 app.get('/api/contacts', async (req, res) => {
   try {
-    const db = require('./db');
-    const contacts = await db.query("SELECT * FROM wa_contacts ORDER BY created_at DESC");
+    const db = require('./db/index'); // Pakai path eksplisit agar aman saat load pertama
+    const contacts = await db.query("SELECT * FROM wa_contacts ORDER BY created_at DESC LIMIT 500");
     res.json({ success: true, data: contacts.rows });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -140,7 +153,17 @@ io.on('connection', (socket) => {
 });
 
 async function connectToWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+  let state, saveCreds;
+  try {
+    const authState = await useMultiFileAuthState('auth_info_baileys');
+    state = authState.state;
+    saveCreds = authState.saveCreds;
+  } catch (err) {
+    console.error('Data kredensial WhatsApp rusak. Mereset sesi...', err.message);
+    const fs = require('fs');
+    if (fs.existsSync('auth_info_baileys')) fs.rmSync('auth_info_baileys', { recursive: true, force: true });
+    return process.exit(1); // Restart process automatically
+  }
 
   const sock = makeWASocket({
     auth: state,
@@ -174,11 +197,19 @@ async function connectToWhatsApp() {
       qrCodeData = null;
       globalSock = null;
       const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
-      console.log('Koneksi terputus.', lastDisconnect.error, 'Reconnecting:', shouldReconnect);
+      console.log('Koneksi terputus. Reconnecting:', shouldReconnect);
       if (shouldReconnect) {
-        connectToWhatsApp();
+        setTimeout(connectToWhatsApp, 3000); // Jeda 3 detik cegah reconnect loop
       } else {
-        console.log('Sesi telah dihapus. Silakan hapus folder "auth_info_baileys" dan scan ulang.');
+        console.log('Sesi dihapus dari HP. Menghapus data sesi lokal...');
+        const fs = require('fs');
+        if (fs.existsSync('auth_info_baileys')) {
+          fs.rmSync('auth_info_baileys', { recursive: true, force: true });
+        }
+        connectionStatus = 'connecting';
+        io.emit('status', { status: 'disconnected' });
+        // Restart proses otomatis (biarkan Coolify yang membangkitkan ulang)
+        setTimeout(() => process.exit(0), 1000);
       }
     } else if (connection === 'open') {
       console.log('✅ Bot WhatsApp berhasil terhubung!');
@@ -197,8 +228,12 @@ async function connectToWhatsApp() {
 }
 
 // --- Polling WhatsApp Outbox ---
+let isPolling = false;
 setInterval(async () => {
   if (!globalSock || connectionStatus !== 'open') return;
+  if (isPolling) return; // MENCEGAH TUMPANG TINDIH JIKA PROSES LAMBAT
+  isPolling = true;
+
   try {
     const db = require('./db');
     // Ambil pesan dari antrean
@@ -206,6 +241,9 @@ setInterval(async () => {
     if (res.rows.length === 0) return;
 
     for (const row of res.rows) {
+      // Cegah duplikasi pengiriman dengan menandai sebagai 'processing'
+      await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'processing' WHERE id = $1", [row.id]);
+
       let cleanNumber = row.phone.replace(/\D/g, '');
       if (cleanNumber.startsWith('0')) cleanNumber = '62' + cleanNumber.substring(1);
       const formattedTo = cleanNumber.includes('@s.whatsapp.net') ? cleanNumber : `${cleanNumber}@s.whatsapp.net`;
@@ -219,19 +257,24 @@ setInterval(async () => {
         // Update status menjadi sent
         await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'sent', sent_at = NOW() WHERE id = $1", [row.id]);
         
-        // Catat kontak penerima secara otomatis
-        await db.query(
-          "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
-          [formattedTo, 'Pemohon (Notifikasi)']
-        );
+        try {
+          // Catat kontak penerima secara otomatis
+          await db.query(
+            "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
+            [formattedTo, 'Pemohon (Notifikasi)']
+          );
 
-        // Simpan ke log DB
-        await db.query(
-          "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
-          [formattedTo, true, 'conversation', row.message, Math.floor(Date.now() / 1000)]
-        );
+          // Simpan ke log DB
+          await db.query(
+            "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
+            [formattedTo, true, 'conversation', row.message, Math.floor(Date.now() / 1000)]
+          );
+        } catch (dbErr) {
+          console.error(`[Queue] Pesan terkirim, tapi gagal log DB untuk ${formattedTo}:`, dbErr.message);
+        }
+
       } catch (err) {
-        console.error(`[Queue] Gagal kirim pesan ke ${formattedTo}:`, err);
+        console.error(`[Queue] Gagal kirim pesan ke ${formattedTo}:`, err.message);
         await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'failed' WHERE id = $1", [row.id]);
       }
       
@@ -240,6 +283,8 @@ setInterval(async () => {
     }
   } catch (err) {
     console.error("[Queue] Error polling database:", err.message);
+  } finally {
+    isPolling = false; // Buka kembali kunci
   }
 }, 5000);
 

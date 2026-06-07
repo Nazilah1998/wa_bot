@@ -6,10 +6,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Fungsi untuk membuat bot seolah-olah sedang mengetik
 async function simulateTyping(sock, jid) {
-  await sock.sendPresenceUpdate("composing", jid);
-  const randomDelay = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
-  await delay(randomDelay);
-  await sock.sendPresenceUpdate("paused", jid);
+  try {
+    await sock.sendPresenceUpdate("composing", jid);
+    const randomDelay = Math.floor(Math.random() * (2000 - 1000 + 1)) + 1000; // 1-2 detik cukup
+    await delay(randomDelay);
+    await sock.sendPresenceUpdate("paused", jid);
+  } catch (err) {
+    console.error("Gagal simulate typing (abaikan jika koneksi belum stabil):", err.message);
+  }
 }
 
 async function handleMessage(sock, msg) {
