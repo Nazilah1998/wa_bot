@@ -39,10 +39,7 @@
                 <i class="fa-solid fa-chart-line mr-3"></i> Beranda
             </a>
             <a href="#" onclick="switchTab('inbox')" class="nav-btn block py-2.5 px-4 rounded transition hover:bg-slate-800 text-slate-300 hover:text-white" id="nav-inbox">
-                <i class="fa-solid fa-comments mr-3"></i> Live Chat
-            </a>
-            <a href="#" onclick="switchTab('broadcast')" class="nav-btn block py-2.5 px-4 rounded transition hover:bg-slate-800 text-slate-300 hover:text-white" id="nav-broadcast">
-                <i class="fa-solid fa-bullhorn mr-3"></i> Broadcast
+                <i class="fa-solid fa-list-check mr-3"></i> Log Pesan
             </a>
             <a href="#" onclick="switchTab('contacts')" class="nav-btn block py-2.5 px-4 rounded transition hover:bg-slate-800 text-slate-300 hover:text-white" id="nav-contacts">
                 <i class="fa-solid fa-address-book mr-3"></i> Kontak
@@ -87,12 +84,13 @@
                             <p id="qr-instruction" class="text-sm text-gray-500 hidden">Buka WhatsApp > Perangkat Tertaut > Scan QR di atas</p>
                         </div>
                         
-                        <div id="connected-container" class="hidden flex flex-col items-center">
+                        <div id="connected-container" class="hidden flex flex-col items-center text-center">
                             <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
                                 <i class="fa-solid fa-check text-4xl text-emerald-500"></i>
                             </div>
                             <h4 class="text-xl font-bold text-gray-800">Bot Terhubung & Aktif</h4>
-                            <p class="text-gray-500 mt-2">Mesin bot siap merespons pesan dan mengirim webhook ke n8n.</p>
+                            <p class="text-gray-500 mt-2">Mesin bot siap merespons pesan dan memproses antrean.</p>
+                            <button onclick="logoutBot(event)" class="mt-6 px-4 py-2 bg-rose-50 text-rose-600 rounded-lg text-sm font-medium hover:bg-rose-100 transition border border-rose-200 shadow-sm"><i class="fa-solid fa-right-from-bracket mr-2"></i>Logout & Ganti Nomor WA</button>
                         </div>
                     </div>
 
@@ -123,42 +121,27 @@
                 </div>
             </div>
 
-            <!-- Tab: Live Chat -->
+            <!-- Tab: Log Pesan -->
             <div id="tab-inbox" class="tab-content hidden h-full">
                 <div class="bg-white rounded-xl shadow-sm border h-full flex flex-col">
                     <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
-                        <h3 class="font-semibold text-gray-700"><i class="fa-solid fa-history mr-2"></i>Riwayat Chat Real-time</h3>
+                        <h3 class="font-semibold text-gray-700"><i class="fa-solid fa-list-check mr-2"></i>Log Aktivitas Pesan Pemohon</h3>
                         <button onclick="fetchMessages()" class="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-sm transition"><i class="fa-solid fa-rotate mr-1"></i>Refresh</button>
                     </div>
-                    <div id="chat-container" class="flex-1 overflow-y-auto p-6 bg-whatsapp-pattern space-y-4">
-                        <!-- Chat bubbles will be injected here -->
-                        <div class="text-center text-sm text-gray-500 bg-white/80 py-1 px-3 rounded-full w-max mx-auto shadow-sm">Memuat riwayat chat...</div>
-                    </div>
-                    <div class="p-4 border-t bg-gray-50 rounded-b-xl flex gap-2">
-                        <input type="text" id="quick-reply-to" placeholder="Nomor Tujuan (628...)" class="w-1/4 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <input type="text" id="quick-reply-msg" placeholder="Ketik pesan balasan manual..." class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <button onclick="sendQuickReply()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition font-medium"><i class="fa-solid fa-paper-plane"></i></button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab: Broadcast -->
-            <div id="tab-broadcast" class="tab-content hidden max-w-3xl mx-auto">
-                <div class="bg-white rounded-xl shadow-sm border p-6">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-6">Kirim Pesan Massal (Broadcast)</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Tujuan (Pisahkan dengan koma)</label>
-                            <textarea id="broadcast-numbers" rows="3" class="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Contoh: 628123456789, 628987654321"></textarea>
-                            <p class="text-xs text-gray-500 mt-1">Pastikan menggunakan format kode negara (misal 62) tanpa tanda plus (+).</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Isi Pesan</label>
-                            <textarea id="broadcast-message" rows="5" class="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Ketik pengumuman di sini..."></textarea>
-                        </div>
-                        <div class="pt-4">
-                            <button onclick="sendBroadcast()" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition shadow-sm"><i class="fa-solid fa-bullhorn mr-2"></i> Kirim Broadcast Sekarang</button>
-                        </div>
+                    <div class="flex-1 overflow-y-auto p-4 bg-white">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-sm uppercase border-b">
+                                    <th class="p-4 font-semibold rounded-tl-lg">Waktu</th>
+                                    <th class="p-4 font-semibold">Nomor WA</th>
+                                    <th class="p-4 font-semibold">Konteks / Tujuan</th>
+                                    <th class="p-4 font-semibold rounded-tr-lg">Arah</th>
+                                </tr>
+                            </thead>
+                            <tbody id="messages-table" class="divide-y text-sm text-gray-700">
+                                <tr><td colspan="4" class="p-4 text-center text-gray-500">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -213,11 +196,9 @@
             activeBtn.classList.remove('hover:bg-slate-800', 'text-slate-300');
             activeBtn.classList.add('bg-emerald-600', 'text-white');
             
-            // Update Title
             const titles = {
                 'dashboard': 'Beranda Status',
-                'inbox': 'Live Chat & Log',
-                'broadcast': 'Kirim Broadcast Massal',
+                'inbox': 'Log Aktivitas Pesan',
                 'contacts': 'Buku Kontak'
             };
             document.getElementById('page-title').innerText = titles[tabId];
@@ -298,36 +279,53 @@
             return new Date(timestamp * 1000).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
         }
 
+        function determineIntent(text) {
+            if (!text) return '<span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">Lainnya</span>';
+            const t = text.toLowerCase();
+            if (t.includes('otp') || t.includes('sandi') || t.includes('password')) {
+                return '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Lupa Password / OTP</span>';
+            }
+            if (t.includes('layanan') || t.includes('pengajuan') || t.includes('permohonan')) {
+                return '<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Pengajuan Layanan</span>';
+            }
+            if (t.includes('selesai') || t.includes('diambil')) {
+                return '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">Layanan Selesai</span>';
+            }
+            return '<span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium">Pesan Biasa</span>';
+        }
+
         async function fetchMessages() {
             try {
                 const res = await fetch('/api/messages');
                 const result = await res.json();
-                const container = document.getElementById('chat-container');
-                container.innerHTML = '';
+                const tbody = document.getElementById('messages-table');
+                if(!tbody) return;
+                tbody.innerHTML = '';
                 
                 if(result.data.length === 0) {
-                    container.innerHTML = '<div class="text-center text-sm text-gray-500 bg-white/80 py-1 px-3 rounded-full w-max mx-auto shadow-sm">Belum ada riwayat chat</div>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">Belum ada aktivitas pesan terekam.</td></tr>';
                     return;
                 }
 
-                result.data.reverse().forEach(log => {
+                result.data.forEach(log => {
                     const isOut = log.is_from_me;
-                    const senderName = isOut ? 'Anda (Bot)' : log.remote_jid.split('@')[0];
-                    const bubbleClass = isOut ? 'chat-bubble-out self-end ml-auto bg-emerald-100' : 'chat-bubble-in self-start mr-auto bg-white';
+                    const directionHTML = isOut 
+                        ? '<span class="text-emerald-600 font-medium"><i class="fa-solid fa-arrow-right mr-1"></i>Keluar</span>'
+                        : '<span class="text-blue-600 font-medium"><i class="fa-solid fa-arrow-left mr-1"></i>Masuk</span>';
                     
-                    const html = `
-                        <div class="flex flex-col max-w-[70%] ${isOut ? 'items-end' : 'items-start'}">
-                            <span class="text-[11px] text-gray-600 font-medium mb-1 px-1">${senderName}</span>
-                            <div class="${bubbleClass} px-4 py-2 relative">
-                                <p class="text-sm text-gray-800 whitespace-pre-wrap">${log.content || '[Pesan non-teks]'}</p>
-                                <span class="text-[10px] text-gray-500 block text-right mt-1">${formatTime(log.timestamp)}</span>
-                            </div>
-                        </div>
+                    const jid = log.remote_jid.split('@')[0];
+                    const intent = determineIntent(log.content);
+                    const time = formatTime(log.timestamp);
+                    
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="p-4 text-gray-500 whitespace-nowrap">${time}</td>
+                            <td class="p-4 font-semibold text-gray-800">${jid}</td>
+                            <td class="p-4">${intent}</td>
+                            <td class="p-4">${directionHTML}</td>
+                        </tr>
                     `;
-                    container.innerHTML += html;
                 });
-                
-                container.scrollTop = container.scrollHeight; // Scroll to bottom
             } catch (err) {
                 console.error(err);
             }
@@ -370,51 +368,31 @@
             return res.json();
         }
 
-        async function sendQuickReply() {
-            const to = document.getElementById('quick-reply-to').value;
-            const text = document.getElementById('quick-reply-msg').value;
-            if(!to || !text) return alert('Nomor dan pesan wajib diisi!');
-            
-            const btn = event.currentTarget;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            
-            const res = await sendAPI(to, text);
-            if(res.success) {
-                document.getElementById('quick-reply-msg').value = '';
-                fetchMessages();
-            } else {
-                alert('Gagal: ' + res.message);
+
+
+        async function logoutBot(event) {
+            if(!confirm('Yakin ingin logout? Sesi WA saat ini akan dihapus dan Anda harus melakukan scan QR ulang dengan nomor WhatsApp yang baru.')) return;
+            try {
+                const btn = event.currentTarget;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memproses Logout...';
+                btn.disabled = true;
+
+                const res = await fetch('/api/logout', { method: 'POST' });
+                const result = await res.json();
+                
+                if(result.success) {
+                    alert('Logout berhasil! Server bot sedang menyiapkan ulang QR Code. Halaman ini akan termuat ulang otomatis dalam 3 detik.');
+                    setTimeout(() => window.location.reload(), 3000);
+                } else {
+                    alert('Gagal logout: ' + result.error);
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                console.error(e);
             }
-            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
         }
-
-        async function sendBroadcast() {
-            const numbers = document.getElementById('broadcast-numbers').value.split(',').map(n => n.trim()).filter(n => n);
-            const text = document.getElementById('broadcast-message').value;
-            
-            if(numbers.length === 0 || !text) return alert('Masukkan minimal 1 nomor dan isi pesan broadcast!');
-            if(!confirm(`Kirim pesan ke ${numbers.length} nomor?`)) return;
-
-            const btn = event.currentTarget;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengirim...';
-            btn.disabled = true;
-
-            let successCount = 0;
-            for(const num of numbers) {
-                try {
-                    const res = await sendAPI(num, text);
-                    if(res.success) successCount++;
-                } catch(e) {}
-                // Jeda 2 detik antar pesan agar tidak diblokir WA
-                await new Promise(r => setTimeout(r, 2000)); 
-            }
-
-            alert(`Selesai! Berhasil terkirim ke ${successCount} dari ${numbers.length} nomor.`);
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-
     </script>
 </body>
 </html>

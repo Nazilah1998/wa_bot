@@ -45,34 +45,8 @@ async function handleMessage(sock, msg) {
     console.error("Gagal menyimpan log pesan ke DB:", err);
   }
 
-  // 2. Kirim Webhook ke n8n
-  const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
-  if (!n8nWebhookUrl || n8nWebhookUrl === "ISI_DENGAN_URL_WEBHOOK_N8N_ANDA") {
-    console.log("N8N_WEBHOOK_URL belum diatur di .env. Menggunakan auto-reply lokal.");
-    // Fallback lokal sementara (jika webhook belum ada)
-    if (text.toLowerCase() === "halo") {
-      await simulateTyping(sock, sender);
-      await sock.sendMessage(sender, { text: "Halo! Saya adalah Bot PTSP. Integrasi n8n Anda belum selesai diatur (Webhook kosong)." });
-    }
-    return;
-  }
-
-  try {
-    console.log(`Mengirim Webhook ke n8n...`);
-    await axios.post(n8nWebhookUrl, {
-      sender: sender,
-      name: msg.pushName || sender.split("@")[0],
-      text: text,
-      timestamp: msg.messageTimestamp,
-    });
-    console.log(`Webhook berhasil dikirim ke n8n!`);
-    
-    // Opsional: Bikin bot pura-pura mengetik sambil nunggu n8n membalas
-    await sock.sendPresenceUpdate("composing", sender);
-
-  } catch (err) {
-    console.error("Gagal mengirim Webhook ke n8n:", err.message);
-  }
+  // 2. Kirim Webhook ke n8n (Dinonaktifkan sesuai permintaan)
+  // Bot sekarang 100% 1-arah (Sistem Notifikasi). Tidak ada lagi auto-reply.
 }
 
 module.exports = { handleMessage, simulateTyping };

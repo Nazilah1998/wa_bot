@@ -57,9 +57,15 @@ app.post('/api/send', async (req, res) => {
     
     await globalSock.sendMessage(formattedTo, { text: text });
 
-    
     // Simpan ke log DB (Pesan Keluar)
     const db = require('./db');
+    
+    // Catat kontak penerima secara otomatis
+    await db.query(
+      "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
+      [formattedTo, 'Pemohon / Klien']
+    );
+
     await db.query(
       "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
       [formattedTo, true, 'conversation', text, Math.floor(Date.now() / 1000)]
@@ -89,6 +95,35 @@ app.get('/api/contacts', async (req, res) => {
     const db = require('./db');
     const contacts = await db.query("SELECT * FROM wa_contacts ORDER BY created_at DESC");
     res.json({ success: true, data: contacts.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. API Endpoint untuk Logout (Ganti Akun WA)
+app.post('/api/logout', async (req, res) => {
+  try {
+    if (globalSock) {
+      await globalSock.logout();
+    }
+    
+    // Hapus folder kredensial
+    const fs = require('fs');
+    if (fs.existsSync('auth_info_baileys')) {
+      fs.rmSync('auth_info_baileys', { recursive: true, force: true });
+    }
+
+    qrCodeData = null;
+    connectionStatus = 'connecting';
+    globalSock = null;
+
+    res.json({ success: true, message: 'Berhasil logout' });
+
+    // Restart proses agar Baileys membuat ulang QR Code (Coolify akan restart otomatis)
+    setTimeout(() => {
+      process.exit(0);
+    }, 1000);
+
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -184,6 +219,12 @@ setInterval(async () => {
         // Update status menjadi sent
         await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'sent', sent_at = NOW() WHERE id = $1", [row.id]);
         
+        // Catat kontak penerima secara otomatis
+        await db.query(
+          "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
+          [formattedTo, 'Pemohon (Notifikasi)']
+        );
+
         // Simpan ke log DB
         await db.query(
           "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
