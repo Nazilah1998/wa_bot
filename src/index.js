@@ -6,7 +6,7 @@ const path = require('path');
 const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const qrcodeTerminal = require('qrcode-terminal');
-const { handleMessage } = require('./handlers/messageHandler');
+const { handleMessage, simulateTyping } = require('./handlers/messageHandler');
 require('dotenv').config();
 
 const app = express();
@@ -15,11 +15,86 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-// Setup static folder for public files
+app.use(express.json()); // Supaya bisa baca JSON body
 app.use(express.static(path.join(__dirname, 'public')));
 
 let qrCodeData = null;
 let connectionStatus = 'connecting';
+let globalSock = null; // Menyimpan instance socket whatsapp
+
+// --- API ENDPOINTS ---
+
+// 1. API Endpoint untuk mengirim pesan (Ditembak oleh n8n atau Dashboard)
+app.post('/api/send', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (process.env.API_KEY && apiKey !== process.env.API_KEY) {
+    return res.status(401).json({ success: false, message: 'API Key tidak valid' });
+  }
+
+  const { to, text } = req.body;
+  if (!to || !text) {
+    return res.status(400).json({ success: false, message: 'Parameter "to" dan "text" wajib diisi' });
+  }
+
+  if (!globalSock || connectionStatus !== 'open') {
+    return res.status(503).json({ success: false, message: 'WhatsApp belum terhubung' });
+  }
+
+  try {
+    // Format nomor: hilangkan karakter selain angka
+    let cleanNumber = to.replace(/\D/g, '');
+    // Ubah 0 awalan menjadi 62
+    if (cleanNumber.startsWith('0')) {
+      cleanNumber = '62' + cleanNumber.substring(1);
+    }
+    
+    const formattedTo = cleanNumber.includes('@s.whatsapp.net') ? cleanNumber : `${cleanNumber}@s.whatsapp.net`;
+    
+    console.log(`[API] Menerima request kirim pesan ke: ${formattedTo}`);
+    
+    // Beri jeda dan pura-pura mengetik agar tidak terlihat seperti bot
+    await simulateTyping(globalSock, formattedTo);
+    
+    await globalSock.sendMessage(formattedTo, { text: text });
+
+    
+    // Simpan ke log DB (Pesan Keluar)
+    const db = require('./db');
+    await db.query(
+      "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
+      [formattedTo, true, 'conversation', text, Math.floor(Date.now() / 1000)]
+    );
+
+    res.json({ success: true, message: 'Pesan berhasil dikirim' });
+  } catch (err) {
+    console.error('Gagal mengirim pesan via API:', err);
+    res.status(500).json({ success: false, message: 'Gagal mengirim pesan', error: err.message });
+  }
+});
+
+// 2. API Endpoint untuk mengambil riwayat pesan (Untuk Dashboard)
+app.get('/api/messages', async (req, res) => {
+  try {
+    const db = require('./db');
+    const logs = await db.query("SELECT * FROM wa_message_logs ORDER BY timestamp DESC LIMIT 100");
+    res.json({ success: true, data: logs.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. API Endpoint untuk mengambil kontak (Untuk Dashboard)
+app.get('/api/contacts', async (req, res) => {
+  try {
+    const db = require('./db');
+    const contacts = await db.query("SELECT * FROM wa_contacts ORDER BY created_at DESC");
+    res.json({ success: true, data: contacts.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// --- SOCKET.IO ---
 
 io.on('connection', (socket) => {
   // Send current status to newly connected clients
@@ -37,6 +112,8 @@ async function connectToWhatsApp() {
     printQRInTerminal: true, // Tetap tampilkan di terminal untuk cadangan
     logger: pino({ level: 'silent' }), 
   });
+  
+  globalSock = sock; // Simpan ke global
 
   sock.ev.on('creds.update', saveCreds);
 
@@ -60,6 +137,7 @@ async function connectToWhatsApp() {
 
     if (connection === 'close') {
       qrCodeData = null;
+      globalSock = null;
       const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
       console.log('Koneksi terputus.', lastDisconnect.error, 'Reconnecting:', shouldReconnect);
       if (shouldReconnect) {
@@ -77,9 +155,52 @@ async function connectToWhatsApp() {
     const msg = m.messages[0];
     if (m.type === 'notify') {
       await handleMessage(sock, msg);
+      // Emit ke frontend agar muncul di Live Chat tanpa direfresh
+      io.emit('new_message', msg);
     }
   });
 }
+
+// --- Polling WhatsApp Outbox ---
+setInterval(async () => {
+  if (!globalSock || connectionStatus !== 'open') return;
+  try {
+    const db = require('./db');
+    // Ambil pesan dari antrean
+    const res = await db.query("SELECT * FROM ptsp_whatsapp_outbox WHERE status = 'pending' ORDER BY created_at ASC LIMIT 5");
+    if (res.rows.length === 0) return;
+
+    for (const row of res.rows) {
+      let cleanNumber = row.phone.replace(/\D/g, '');
+      if (cleanNumber.startsWith('0')) cleanNumber = '62' + cleanNumber.substring(1);
+      const formattedTo = cleanNumber.includes('@s.whatsapp.net') ? cleanNumber : `${cleanNumber}@s.whatsapp.net`;
+      
+      console.log(`[Queue] Mengirim pesan antrean ke: ${formattedTo}`);
+      
+      try {
+        await simulateTyping(globalSock, formattedTo);
+        await globalSock.sendMessage(formattedTo, { text: row.message });
+        
+        // Update status menjadi sent
+        await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'sent', sent_at = NOW() WHERE id = $1", [row.id]);
+        
+        // Simpan ke log DB
+        await db.query(
+          "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
+          [formattedTo, true, 'conversation', row.message, Math.floor(Date.now() / 1000)]
+        );
+      } catch (err) {
+        console.error(`[Queue] Gagal kirim pesan ke ${formattedTo}:`, err);
+        await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'failed' WHERE id = $1", [row.id]);
+      }
+      
+      // Jeda 2 detik antar pesan agar tidak dibanned WhatsApp
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  } catch (err) {
+    console.error("[Queue] Error polling database:", err.message);
+  }
+}, 5000);
 
 server.listen(PORT, () => {
   console.log(`Server web berjalan di http://localhost:${PORT}`);

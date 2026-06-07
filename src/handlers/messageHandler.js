@@ -1,18 +1,14 @@
 const db = require("../db");
+const axios = require("axios");
 
 // Fungsi untuk menjeda eksekusi (delay)
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Fungsi untuk membuat bot seolah-olah sedang mengetik
 async function simulateTyping(sock, jid) {
-  // Mengirim status "sedang mengetik..."
   await sock.sendPresenceUpdate("composing", jid);
-
-  // Jeda acak antara 3000ms (3 detik) hingga 5000ms (5 detik)
   const randomDelay = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
   await delay(randomDelay);
-
-  // Menghentikan status "sedang mengetik..." (opsional, biasanya otomatis hilang saat pesan terkirim)
   await sock.sendPresenceUpdate("paused", jid);
 }
 
@@ -30,57 +26,53 @@ async function handleMessage(sock, msg) {
         : "";
 
   if (!text) return;
-  console.log(`Pesan masuk dari ${sender}: ${text}`);
+  console.log(`[Pesan Masuk] ${sender}: ${text}`);
 
-  const command = text.toLowerCase().trim();
+  // 1. Simpan pesan ke log database (wa_message_logs)
+  try {
+    // Pastikan kontak terdaftar (Upsert sederhana)
+    await db.query(
+      "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
+      [sender, msg.pushName || sender.split("@")[0]]
+    );
 
-  // Contoh: Mengecek status tiket
-  if (command.startsWith("!status")) {
-    const args = command.split(" ");
-    if (args.length < 2) {
+    // Simpan Log
+    await db.query(
+      "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
+      [sender, false, messageType, text, msg.messageTimestamp]
+    );
+  } catch (err) {
+    console.error("Gagal menyimpan log pesan ke DB:", err);
+  }
+
+  // 2. Kirim Webhook ke n8n
+  const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
+  if (!n8nWebhookUrl || n8nWebhookUrl === "ISI_DENGAN_URL_WEBHOOK_N8N_ANDA") {
+    console.log("N8N_WEBHOOK_URL belum diatur di .env. Menggunakan auto-reply lokal.");
+    // Fallback lokal sementara (jika webhook belum ada)
+    if (text.toLowerCase() === "halo") {
       await simulateTyping(sock, sender);
-      await sock.sendMessage(sender, {
-        text: "Format salah. Gunakan: !status [Nomor Tiket]",
-      });
-      return;
-    }
-
-    const ticketNumber = args[1].toUpperCase();
-
-    try {
-      const res = await db.query(
-        "SELECT status, service_name FROM ptsp_service_requests WHERE request_number = $1",
-        [ticketNumber],
-      );
-
-      await simulateTyping(sock, sender); // Mengetik sebelum merespons hasil DB
-
-      if (res.rows.length === 0) {
-        await sock.sendMessage(sender, {
-          text: `Maaf, tiket dengan nomor ${ticketNumber} tidak ditemukan.`,
-        });
-      } else {
-        const data = res.rows[0];
-        await sock.sendMessage(sender, {
-          text: `Status tiket *${ticketNumber}* (${data.service_name}):\n\nStatus: *${data.status}*`,
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      await simulateTyping(sock, sender);
-      await sock.sendMessage(sender, {
-        text: "Terjadi kesalahan saat mengecek database.",
-      });
+      await sock.sendMessage(sender, { text: "Halo! Saya adalah Bot PTSP. Integrasi n8n Anda belum selesai diatur (Webhook kosong)." });
     }
     return;
   }
 
-  // Contoh Menu Utama
-  if (command === "!menu" || command === "halo" || command === "ping") {
-    await simulateTyping(sock, sender); // Mengetik sebelum mengirim menu
-    const reply = `Halo! Saya adalah Bot PTSP Kemenag Barito Utara. 🤖\n\nKetik perintah berikut:\n- *!status [Nomor Tiket]*: Cek status permohonan Anda.\n- *!info*: Informasi layanan.`;
-    await sock.sendMessage(sender, { text: reply });
+  try {
+    console.log(`Mengirim Webhook ke n8n...`);
+    await axios.post(n8nWebhookUrl, {
+      sender: sender,
+      name: msg.pushName || sender.split("@")[0],
+      text: text,
+      timestamp: msg.messageTimestamp,
+    });
+    console.log(`Webhook berhasil dikirim ke n8n!`);
+    
+    // Opsional: Bikin bot pura-pura mengetik sambil nunggu n8n membalas
+    await sock.sendPresenceUpdate("composing", sender);
+
+  } catch (err) {
+    console.error("Gagal mengirim Webhook ke n8n:", err.message);
   }
 }
 
-module.exports = { handleMessage };
+module.exports = { handleMessage, simulateTyping };

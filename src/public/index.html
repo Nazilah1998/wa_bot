@@ -3,180 +3,419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Bot Dashboard</title>
+    <title>PTSP WhatsApp Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg-color: #f0f2f5;
-            --primary: #00a884;
-            --text-dark: #111b21;
-            --text-light: #54656f;
-            --card-bg: #ffffff;
+        .chat-bubble-in {
+            background-color: #ffffff;
+            border-radius: 0 8px 8px 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: var(--text-dark);
+        .chat-bubble-out {
+            background-color: #d9fdd3;
+            border-radius: 8px 0 8px 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-
-        .container {
-            background-color: var(--card-bg);
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 100%;
-        }
-
-        h1 {
-            color: var(--primary);
-            margin-top: 0;
-            font-size: 24px;
-            margin-bottom: 8px;
-        }
-
-        p {
-            color: var(--text-light);
-            margin-bottom: 24px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 24px;
-        }
-
-        .status-badge.connecting {
-            background-color: #ffe0b2;
-            color: #e65100;
-        }
-
-        .status-badge.connected {
-            background-color: #c8e6c9;
-            color: #2e7d32;
-        }
-
-        .status-badge.disconnected {
-            background-color: #ffcdd2;
-            color: #c62828;
-        }
-
-        .qr-container {
-            background-color: var(--bg-color);
-            padding: 20px;
-            border-radius: 8px;
-            min-height: 250px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #qr-code {
-            max-width: 100%;
-            border-radius: 8px;
-            margin-bottom: 16px;
-        }
-
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .hidden {
-            display: none !important;
+        .bg-whatsapp-pattern {
+            background-color: #efeae2;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-size: contain;
+            background-blend-mode: multiply;
+            opacity: 0.9;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 flex h-screen overflow-hidden">
 
-<div class="container">
-    <h1>WhatsApp Bot</h1>
-    <p>Sistem Pelayanan Terpadu Satu Pintu</p>
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex">
+        <div class="p-6 border-b border-slate-800">
+            <h1 class="text-2xl font-bold text-emerald-400"><i class="fa-brands fa-whatsapp mr-2"></i>PTSP Bot</h1>
+            <p class="text-xs text-slate-400 mt-1">Sistem Pelayanan Terpadu</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="#" onclick="switchTab('dashboard')" class="nav-btn block py-2.5 px-4 rounded transition bg-emerald-600 text-white" id="nav-dashboard">
+                <i class="fa-solid fa-chart-line mr-3"></i> Beranda
+            </a>
+            <a href="#" onclick="switchTab('inbox')" class="nav-btn block py-2.5 px-4 rounded transition hover:bg-slate-800 text-slate-300 hover:text-white" id="nav-inbox">
+                <i class="fa-solid fa-comments mr-3"></i> Live Chat
+            </a>
+            <a href="#" onclick="switchTab('broadcast')" class="nav-btn block py-2.5 px-4 rounded transition hover:bg-slate-800 text-slate-300 hover:text-white" id="nav-broadcast">
+                <i class="fa-solid fa-bullhorn mr-3"></i> Broadcast
+            </a>
+            <a href="#" onclick="switchTab('contacts')" class="nav-btn block py-2.5 px-4 rounded transition hover:bg-slate-800 text-slate-300 hover:text-white" id="nav-contacts">
+                <i class="fa-solid fa-address-book mr-3"></i> Kontak
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <div id="sidebar-status" class="flex items-center text-sm font-medium text-amber-500">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
+                Menyambung...
+            </div>
+        </div>
+    </aside>
 
-    <div id="status-badge" class="status-badge connecting">Memulai sistem...</div>
-
-    <div class="qr-container">
-        <div id="loader" class="loader"></div>
-        <img id="qr-code" class="hidden" alt="Scan me!" />
-        <p id="qr-instruction" class="hidden" style="margin-top: 16px; margin-bottom: 0;">
-            Buka WhatsApp di HP Anda,<br>ketuk menu dan pilih <b>Perangkat Tertaut</b>,<br>lalu scan QR code di atas.
-        </p>
-        <p id="connected-message" class="hidden" style="margin: 0; color: #2e7d32; font-weight: bold;">
-            Bot sudah terhubung dan siap merespons pesan!
-        </p>
-    </div>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    const socket = io();
-    const statusBadge = document.getElementById('status-badge');
-    const qrCode = document.getElementById('qr-code');
-    const loader = document.getElementById('loader');
-    const qrInstruction = document.getElementById('qr-instruction');
-    const connectedMessage = document.getElementById('connected-message');
-
-    function updateStatus(status, text) {
-        statusBadge.className = `status-badge ${status}`;
-        statusBadge.innerText = text;
-
-        if (status === 'connected') {
-            loader.classList.add('hidden');
-            qrCode.classList.add('hidden');
-            qrInstruction.classList.add('hidden');
-            connectedMessage.classList.remove('hidden');
-        } else if (status === 'disconnected') {
-            loader.classList.remove('hidden');
-            qrCode.classList.add('hidden');
-            qrInstruction.classList.add('hidden');
-            connectedMessage.classList.add('hidden');
-        }
-    }
-
-    // Mendengarkan update status koneksi
-    socket.on('status', (data) => {
-        if (data.status === 'open') {
-            updateStatus('connected', 'Terhubung ✅');
-        } else if (data.status === 'close' || data.status === 'connecting') {
-            updateStatus('disconnected', 'Menunggu Koneksi 🔄');
-        }
-    });
-
-    // Mendengarkan update QR code
-    socket.on('qr', (qrSrc) => {
-        updateStatus('connecting', 'Silakan Scan QR 📱');
-        loader.classList.add('hidden');
-        connectedMessage.classList.add('hidden');
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50">
         
-        qrCode.src = qrSrc;
-        qrCode.classList.remove('hidden');
-        qrInstruction.classList.remove('hidden');
-    });
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center z-10">
+            <h2 class="text-xl font-semibold text-gray-800" id="page-title">Beranda Status</h2>
+            <div class="flex items-center space-x-4">
+                <div id="top-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                    <i class="fa-solid fa-rotate mr-1 animate-spin"></i> Menunggu...
+                </div>
+            </div>
+        </header>
 
-    // Jika socket terputus
-    socket.on('disconnect', () => {
-        updateStatus('disconnected', 'Server Terputus ❌');
-    });
+        <!-- Dynamic Content Area -->
+        <div class="flex-1 overflow-y-auto p-6 relative">
+            
+            <!-- Tab: Dashboard / Status -->
+            <div id="tab-dashboard" class="tab-content block">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Status Card -->
+                    <div class="bg-white rounded-xl shadow-sm border p-6 flex flex-col items-center justify-center text-center min-h-[350px]">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Status Koneksi Perangkat</h3>
+                        
+                        <div id="qr-container" class="flex flex-col items-center">
+                            <div id="loader" class="mb-4">
+                                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-500"></i>
+                            </div>
+                            <img id="qr-code" class="hidden w-64 h-64 border p-2 rounded-lg shadow-sm mb-4" alt="QR Code" />
+                            <p id="qr-instruction" class="text-sm text-gray-500 hidden">Buka WhatsApp > Perangkat Tertaut > Scan QR di atas</p>
+                        </div>
+                        
+                        <div id="connected-container" class="hidden flex flex-col items-center">
+                            <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                                <i class="fa-solid fa-check text-4xl text-emerald-500"></i>
+                            </div>
+                            <h4 class="text-xl font-bold text-gray-800">Bot Terhubung & Aktif</h4>
+                            <p class="text-gray-500 mt-2">Mesin bot siap merespons pesan dan mengirim webhook ke n8n.</p>
+                        </div>
+                    </div>
 
-</script>
+                    <!-- Info Card -->
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Informasi Sistem</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <div class="bg-blue-100 p-2 rounded-lg text-blue-600 mr-4">
+                                    <i class="fa-solid fa-network-wired"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Integrasi n8n (Webhook)</h4>
+                                    <p class="text-sm text-gray-500">Logika Auto-Reply kini ditangani seutuhnya oleh n8n. Pastikan URL Webhook di .env sudah diatur.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="bg-purple-100 p-2 rounded-lg text-purple-600 mr-4">
+                                    <i class="fa-solid fa-database"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Database Supabase</h4>
+                                    <p class="text-sm text-gray-500">Pesan log tersimpan aman di tabel wa_message_logs.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Live Chat -->
+            <div id="tab-inbox" class="tab-content hidden h-full">
+                <div class="bg-white rounded-xl shadow-sm border h-full flex flex-col">
+                    <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                        <h3 class="font-semibold text-gray-700"><i class="fa-solid fa-history mr-2"></i>Riwayat Chat Real-time</h3>
+                        <button onclick="fetchMessages()" class="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-sm transition"><i class="fa-solid fa-rotate mr-1"></i>Refresh</button>
+                    </div>
+                    <div id="chat-container" class="flex-1 overflow-y-auto p-6 bg-whatsapp-pattern space-y-4">
+                        <!-- Chat bubbles will be injected here -->
+                        <div class="text-center text-sm text-gray-500 bg-white/80 py-1 px-3 rounded-full w-max mx-auto shadow-sm">Memuat riwayat chat...</div>
+                    </div>
+                    <div class="p-4 border-t bg-gray-50 rounded-b-xl flex gap-2">
+                        <input type="text" id="quick-reply-to" placeholder="Nomor Tujuan (628...)" class="w-1/4 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <input type="text" id="quick-reply-msg" placeholder="Ketik pesan balasan manual..." class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <button onclick="sendQuickReply()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition font-medium"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Broadcast -->
+            <div id="tab-broadcast" class="tab-content hidden max-w-3xl mx-auto">
+                <div class="bg-white rounded-xl shadow-sm border p-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-6">Kirim Pesan Massal (Broadcast)</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Tujuan (Pisahkan dengan koma)</label>
+                            <textarea id="broadcast-numbers" rows="3" class="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Contoh: 628123456789, 628987654321"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Pastikan menggunakan format kode negara (misal 62) tanpa tanda plus (+).</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Isi Pesan</label>
+                            <textarea id="broadcast-message" rows="5" class="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Ketik pengumuman di sini..."></textarea>
+                        </div>
+                        <div class="pt-4">
+                            <button onclick="sendBroadcast()" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition shadow-sm"><i class="fa-solid fa-bullhorn mr-2"></i> Kirim Broadcast Sekarang</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Contacts -->
+            <div id="tab-contacts" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-700">Daftar Kontak Terdaftar</h3>
+                        <button onclick="fetchContacts()" class="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-sm transition"><i class="fa-solid fa-rotate mr-1"></i>Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-sm uppercase border-b">
+                                    <th class="p-4 font-semibold">Nama Profile</th>
+                                    <th class="p-4 font-semibold">Nomor WA / JID</th>
+                                    <th class="p-4 font-semibold">Tercatat Sejak</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contacts-table" class="divide-y text-sm text-gray-700">
+                                <tr><td colspan="3" class="p-4 text-center text-gray-500">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // API KEY (Sesuai dengan .env, kosong jika tidak dipasang)
+        const API_KEY = ''; 
+        
+        // Navigation Logic
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            // Reset nav styling
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('bg-emerald-600', 'text-white');
+                el.classList.add('hover:bg-slate-800', 'text-slate-300');
+            });
+            
+            // Show active tab
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            // Style active nav
+            const activeBtn = document.getElementById('nav-' + tabId);
+            activeBtn.classList.remove('hover:bg-slate-800', 'text-slate-300');
+            activeBtn.classList.add('bg-emerald-600', 'text-white');
+            
+            // Update Title
+            const titles = {
+                'dashboard': 'Beranda Status',
+                'inbox': 'Live Chat & Log',
+                'broadcast': 'Kirim Broadcast Massal',
+                'contacts': 'Buku Kontak'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+
+            // Load data based on tab
+            if(tabId === 'inbox') fetchMessages();
+            if(tabId === 'contacts') fetchContacts();
+        }
+
+        // --- Socket.IO Status Management ---
+        const socket = io();
+        const topBadge = document.getElementById('top-status-badge');
+        const sideStatus = document.getElementById('sidebar-status');
+        const qrCode = document.getElementById('qr-code');
+        const loader = document.getElementById('loader');
+        const qrInst = document.getElementById('qr-instruction');
+        const connCont = document.getElementById('connected-container');
+
+        function setUIStatus(state, msg) {
+            if(state === 'connected') {
+                topBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700";
+                topBadge.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Terhubung`;
+                sideStatus.className = "flex items-center text-sm font-medium text-emerald-400";
+                sideStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-2"></span> Aktif`;
+                
+                loader.classList.add('hidden');
+                qrCode.classList.add('hidden');
+                qrInst.classList.add('hidden');
+                connCont.classList.remove('hidden');
+            } 
+            else if(state === 'qr') {
+                topBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700";
+                topBadge.innerHTML = `<i class="fa-solid fa-qrcode mr-1"></i> Perlu Scan`;
+                sideStatus.className = "flex items-center text-sm font-medium text-amber-400";
+                sideStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-2 animate-pulse"></span> Perlu Scan`;
+                
+                loader.classList.add('hidden');
+                connCont.classList.add('hidden');
+                qrCode.classList.remove('hidden');
+                qrInst.classList.remove('hidden');
+            }
+            else {
+                topBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700";
+                topBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Terputus`;
+                sideStatus.className = "flex items-center text-sm font-medium text-rose-400";
+                sideStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-2"></span> Terputus`;
+                
+                loader.classList.remove('hidden');
+                qrCode.classList.add('hidden');
+                qrInst.classList.add('hidden');
+                connCont.classList.add('hidden');
+            }
+        }
+
+        socket.on('status', (data) => {
+            if (data.status === 'open') setUIStatus('connected');
+            else setUIStatus('disconnected');
+        });
+
+        socket.on('qr', (qrSrc) => {
+            setUIStatus('qr');
+            qrCode.src = qrSrc;
+        });
+
+        socket.on('disconnect', () => {
+            setUIStatus('disconnected');
+        });
+
+        socket.on('new_message', (msg) => {
+            // Refresh inbox automatically if tab is open
+            if(!document.getElementById('tab-inbox').classList.contains('hidden')) {
+                fetchMessages();
+            }
+        });
+
+        // --- Data Fetching ---
+        function formatTime(timestamp) {
+            return new Date(timestamp * 1000).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
+        }
+
+        async function fetchMessages() {
+            try {
+                const res = await fetch('/api/messages');
+                const result = await res.json();
+                const container = document.getElementById('chat-container');
+                container.innerHTML = '';
+                
+                if(result.data.length === 0) {
+                    container.innerHTML = '<div class="text-center text-sm text-gray-500 bg-white/80 py-1 px-3 rounded-full w-max mx-auto shadow-sm">Belum ada riwayat chat</div>';
+                    return;
+                }
+
+                result.data.reverse().forEach(log => {
+                    const isOut = log.is_from_me;
+                    const senderName = isOut ? 'Anda (Bot)' : log.remote_jid.split('@')[0];
+                    const bubbleClass = isOut ? 'chat-bubble-out self-end ml-auto bg-emerald-100' : 'chat-bubble-in self-start mr-auto bg-white';
+                    
+                    const html = `
+                        <div class="flex flex-col max-w-[70%] ${isOut ? 'items-end' : 'items-start'}">
+                            <span class="text-[11px] text-gray-600 font-medium mb-1 px-1">${senderName}</span>
+                            <div class="${bubbleClass} px-4 py-2 relative">
+                                <p class="text-sm text-gray-800 whitespace-pre-wrap">${log.content || '[Pesan non-teks]'}</p>
+                                <span class="text-[10px] text-gray-500 block text-right mt-1">${formatTime(log.timestamp)}</span>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                });
+                
+                container.scrollTop = container.scrollHeight; // Scroll to bottom
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchContacts() {
+            try {
+                const res = await fetch('/api/contacts');
+                const result = await res.json();
+                const tbody = document.getElementById('contacts-table');
+                tbody.innerHTML = '';
+                
+                if(result.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-500">Belum ada kontak terekam.</td></tr>';
+                    return;
+                }
+
+                result.data.forEach(c => {
+                    const date = new Date(c.created_at).toLocaleDateString('id-ID');
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="p-4 font-medium text-gray-800">${c.name || '<i>Tanpa Nama</i>'}</td>
+                            <td class="p-4 text-gray-600">${c.remote_jid.split('@')[0]}</td>
+                            <td class="p-4 text-gray-500 text-sm">${date}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // --- Sending Messages ---
+        async function sendAPI(to, text) {
+            const res = await fetch('/api/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                body: JSON.stringify({ to, text })
+            });
+            return res.json();
+        }
+
+        async function sendQuickReply() {
+            const to = document.getElementById('quick-reply-to').value;
+            const text = document.getElementById('quick-reply-msg').value;
+            if(!to || !text) return alert('Nomor dan pesan wajib diisi!');
+            
+            const btn = event.currentTarget;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            
+            const res = await sendAPI(to, text);
+            if(res.success) {
+                document.getElementById('quick-reply-msg').value = '';
+                fetchMessages();
+            } else {
+                alert('Gagal: ' + res.message);
+            }
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+        }
+
+        async function sendBroadcast() {
+            const numbers = document.getElementById('broadcast-numbers').value.split(',').map(n => n.trim()).filter(n => n);
+            const text = document.getElementById('broadcast-message').value;
+            
+            if(numbers.length === 0 || !text) return alert('Masukkan minimal 1 nomor dan isi pesan broadcast!');
+            if(!confirm(`Kirim pesan ke ${numbers.length} nomor?`)) return;
+
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengirim...';
+            btn.disabled = true;
+
+            let successCount = 0;
+            for(const num of numbers) {
+                try {
+                    const res = await sendAPI(num, text);
+                    if(res.success) successCount++;
+                } catch(e) {}
+                // Jeda 2 detik antar pesan agar tidak diblokir WA
+                await new Promise(r => setTimeout(r, 2000)); 
+            }
+
+            alert(`Selesai! Berhasil terkirim ke ${successCount} dari ${numbers.length} nomor.`);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+    </script>
 </body>
 </html>
+
