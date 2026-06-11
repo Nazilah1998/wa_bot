@@ -3,397 +3,1569 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PTSP WhatsApp Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>PTSP Bot — Dashboard</title>
+    <meta name="description" content="Panel Admin PTSP Bot — Sistem Pelayanan Terpadu Satu Pintu">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .chat-bubble-in {
-            background-color: #ffffff;
-            border-radius: 0 8px 8px 8px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --wa-sidebar:       #111b21;
+            --wa-main:          #0b141a;
+            --wa-card:          #202c33;
+            --wa-card-hover:    #2a3942;
+            --wa-input:         #2a3942;
+            --wa-border:        rgba(134,150,160,0.15);
+            --wa-accent:        #00a884;
+            --wa-accent-dark:   #017561;
+            --wa-accent-light:  #06cf9c;
+            --wa-bubble-out:    #005c4b;
+            --wa-bubble-in:     #202c33;
+            --wa-text-primary:  #e9edef;
+            --wa-text-secondary:#8696a0;
+            --wa-text-muted:    #667781;
+            --wa-icon:          #aebac1;
+            --wa-online:        #00a884;
+            --wa-red:           #f15c6d;
+            --wa-yellow:        #ffb02e;
+            --wa-blue:          #53bdeb;
+            --sidebar-width:    280px;
+            --header-h:         60px;
+            --radius:           8px;
         }
-        .chat-bubble-out {
-            background-color: #d9fdd3;
-            border-radius: 8px 0 8px 8px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+
+        html, body {
+            height: 100%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--wa-main);
+            color: var(--wa-text-primary);
+            overflow: hidden;
+            font-size: 14px;
         }
-        .bg-whatsapp-pattern {
-            background-color: #efeae2;
-            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-            background-size: contain;
-            background-blend-mode: multiply;
-            opacity: 0.9;
+
+        /* ═══════════════════════════════════════════════
+           APP SHELL
+        ═══════════════════════════════════════════════ */
+        .app-shell {
+            display: flex;
+            height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: var(--wa-sidebar);
+            box-shadow: 0 0 80px rgba(0,0,0,0.6);
+        }
+
+        /* ═══════════════════════════════════════════════
+           SIDEBAR
+        ═══════════════════════════════════════════════ */
+        .sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            background: var(--wa-sidebar);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--wa-border);
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Sidebar Header */
+        .sidebar-header {
+            height: var(--header-h);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--wa-card);
+            border-bottom: 1px solid var(--wa-border);
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--wa-accent-dark), var(--wa-accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,168,132,0.3);
+        }
+
+        .brand-info h1 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--wa-text-primary);
+            line-height: 1.2;
+        }
+
+        .brand-info p {
+            font-size: 11px;
+            color: var(--wa-text-muted);
+            font-weight: 400;
+        }
+
+        .sidebar-header-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--wa-icon);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(134,150,160,0.1);
+            color: var(--wa-text-primary);
+        }
+
+        .icon-btn.danger:hover {
+            background: rgba(241,92,109,0.1);
+            color: var(--wa-red);
+        }
+
+        /* Search Bar */
+        .sidebar-search {
+            padding: 8px 12px;
+            background: var(--wa-sidebar);
+            border-bottom: 1px solid var(--wa-border);
+            flex-shrink: 0;
+        }
+
+        .search-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            color: var(--wa-text-muted);
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--wa-input);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px 8px 36px;
+            color: var(--wa-text-primary);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: background 0.2s;
+        }
+
+        .search-input::placeholder { color: var(--wa-text-muted); }
+        .search-input:focus { background: #3a4a54; }
+
+        /* Navigation Items */
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+
+        .sidebar-nav::-webkit-scrollbar { width: 4px; }
+        .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(134,150,160,0.2); border-radius: 2px; }
+
+        .nav-section-label {
+            padding: 12px 16px 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--wa-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background 0.15s;
+            position: relative;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            color: var(--wa-text-secondary);
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: rgba(134,150,160,0.08);
+            color: var(--wa-text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(0,168,132,0.12);
+            color: var(--wa-accent);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--wa-accent);
+            border-radius: 0 3px 3px 0;
+        }
+
+        .nav-item-icon-wrap {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            background: var(--wa-input);
+            color: var(--wa-icon);
+            transition: all 0.15s;
+        }
+
+        .nav-item.active .nav-item-icon-wrap {
+            background: rgba(0,168,132,0.15);
+            color: var(--wa-accent);
+        }
+
+        .nav-item:hover .nav-item-icon-wrap {
+            background: rgba(134,150,160,0.12);
+        }
+
+        .nav-item-text { flex: 1; }
+
+        .nav-item-label {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.3;
+            color: inherit;
+        }
+
+        .nav-item-desc {
+            font-size: 11px;
+            color: var(--wa-text-muted);
+            margin-top: 1px;
+        }
+
+        .nav-item-badge {
+            background: var(--wa-accent);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .nav-divider {
+            height: 1px;
+            background: var(--wa-border);
+            margin: 4px 16px;
+        }
+
+        /* Sidebar Footer */
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--wa-border);
+            background: var(--wa-card);
+            flex-shrink: 0;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            background: var(--wa-input);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-dot.connecting { background: var(--wa-yellow); animation: pulse 1.5s infinite; }
+        .status-dot.online     { background: var(--wa-online); }
+        .status-dot.offline    { background: var(--wa-red); }
+        .status-dot.scanning   { background: var(--wa-blue); animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        .status-info { flex: 1; }
+        .status-label { font-size: 12px; font-weight: 600; color: var(--wa-text-primary); }
+        .status-sub   { font-size: 11px; color: var(--wa-text-muted); margin-top: 1px; }
+
+        /* ═══════════════════════════════════════════════
+           MAIN PANEL
+        ═══════════════════════════════════════════════ */
+        .main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--wa-main);
+            overflow: hidden;
+        }
+
+        /* Main Header */
+        .main-header {
+            height: var(--header-h);
+            background: var(--wa-card);
+            border-bottom: 1px solid var(--wa-border);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .main-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--wa-text-primary);
+        }
+
+        .main-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .wa-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .wa-badge.success { background: rgba(0,168,132,0.15); color: var(--wa-accent); }
+        .wa-badge.warning { background: rgba(255,176,46,0.15); color: var(--wa-yellow); }
+        .wa-badge.error   { background: rgba(241,92,109,0.15); color: var(--wa-red); }
+        .wa-badge.info    { background: rgba(83,189,235,0.15); color: var(--wa-blue); }
+
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px 4px 4px;
+            border-radius: 20px;
+            background: var(--wa-input);
+            border: 1px solid var(--wa-border);
+            cursor: default;
+        }
+
+        .user-chip-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--wa-accent-dark), var(--wa-accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .user-chip-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--wa-text-primary);
+        }
+
+        /* ═══════════════════════════════════════════════
+           CONTENT AREA
+        ═══════════════════════════════════════════════ */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: none;
+        }
+
+        .content-area.active { display: block; }
+        .content-area::-webkit-scrollbar { width: 5px; }
+        .content-area::-webkit-scrollbar-track { background: transparent; }
+        .content-area::-webkit-scrollbar-thumb { background: rgba(134,150,160,0.2); border-radius: 3px; }
+
+        /* ═══════════════════════════════════════════════
+           CARDS
+        ═══════════════════════════════════════════════ */
+        .card {
+            background: var(--wa-card);
+            border-radius: 12px;
+            border: 1px solid var(--wa-border);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--wa-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-header-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .card-header-icon.green  { background: rgba(0,168,132,0.15); color: var(--wa-accent); }
+        .card-header-icon.blue   { background: rgba(83,189,235,0.15); color: var(--wa-blue); }
+        .card-header-icon.yellow { background: rgba(255,176,46,0.15); color: var(--wa-yellow); }
+        .card-header-icon.red    { background: rgba(241,92,109,0.15); color: var(--wa-red); }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--wa-text-primary);
+        }
+
+        .card-subtitle {
+            font-size: 11px;
+            color: var(--wa-text-muted);
+            margin-top: 1px;
+        }
+
+        .card-body { padding: 20px; }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+
+        /* ═══════════════════════════════════════════════
+           STAT CARDS
+        ═══════════════════════════════════════════════ */
+        .stat-card {
+            background: var(--wa-card);
+            border-radius: 12px;
+            border: 1px solid var(--wa-border);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .stat-card:hover { background: var(--wa-card-hover); border-color: rgba(134,150,160,0.25); }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.green  { background: rgba(0,168,132,0.12); color: var(--wa-accent); }
+        .stat-icon.blue   { background: rgba(83,189,235,0.12); color: var(--wa-blue); }
+        .stat-icon.yellow { background: rgba(255,176,46,0.12); color: var(--wa-yellow); }
+        .stat-icon.red    { background: rgba(241,92,109,0.12); color: var(--wa-red); }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--wa-text-primary);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--wa-text-muted);
+            margin-top: 3px;
+        }
+
+        /* ═══════════════════════════════════════════════
+           QR CODE SECTION (WhatsApp "Link a Device" style)
+        ═══════════════════════════════════════════════ */
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .qr-frame {
+            position: relative;
+            padding: 12px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            margin-bottom: 20px;
+        }
+
+        .qr-frame img {
+            width: 180px;
+            height: 180px;
+            display: block;
+        }
+
+        .qr-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 36px;
+            height: 36px;
+            background: #25d366;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .qr-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--wa-text-primary);
+            margin-bottom: 6px;
+        }
+
+        .qr-steps {
+            list-style: none;
+            text-align: left;
+            margin-top: 12px;
+        }
+
+        .qr-steps li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--wa-text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .qr-steps li .step-num {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--wa-input);
+            color: var(--wa-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* Connected state */
+        .connected-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .connected-ring {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(0,168,132,0.1);
+            border: 2px solid rgba(0,168,132,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .connected-ring::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,168,132,0.15);
+        }
+
+        .connected-ring i {
+            font-size: 40px;
+            color: var(--wa-accent);
+        }
+
+        .connected-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--wa-text-primary);
+            margin-bottom: 6px;
+        }
+
+        .connected-sub {
+            font-size: 13px;
+            color: var(--wa-text-muted);
+            max-width: 240px;
+            line-height: 1.5;
+        }
+
+        /* Loading spinner */
+        .loader-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+            gap: 16px;
+        }
+
+        .wa-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0,168,132,0.15);
+            border-top-color: var(--wa-accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ═══════════════════════════════════════════════
+           INFO LIST
+        ═══════════════════════════════════════════════ */
+        .info-list { display: flex; flex-direction: column; gap: 1px; }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            transition: background 0.15s;
+        }
+
+        .info-item:hover { background: rgba(134,150,160,0.05); }
+
+        .info-item-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .info-item-text { flex: 1; }
+        .info-item-title { font-size: 13px; font-weight: 600; color: var(--wa-text-primary); }
+        .info-item-desc  { font-size: 12px; color: var(--wa-text-muted); margin-top: 2px; line-height: 1.4; }
+
+        /* ═══════════════════════════════════════════════
+           MESSAGE LOG (Chat-style)
+        ═══════════════════════════════════════════════ */
+        .tab-full {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .msg-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .msg-list::-webkit-scrollbar { width: 5px; }
+        .msg-list::-webkit-scrollbar-thumb { background: rgba(134,150,160,0.2); border-radius: 3px; }
+
+        /* Table style for messages */
+        .wa-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .wa-table thead tr {
+            background: var(--wa-input);
+        }
+
+        .wa-table th {
+            padding: 10px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--wa-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .wa-table th:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+        .wa-table th:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
+
+        .wa-table tbody tr {
+            border-bottom: 1px solid var(--wa-border);
+            transition: background 0.15s;
+        }
+
+        .wa-table tbody tr:hover { background: rgba(134,150,160,0.05); }
+        .wa-table tbody tr:last-child { border-bottom: none; }
+
+        .wa-table td {
+            padding: 12px 14px;
+            font-size: 13px;
+            color: var(--wa-text-secondary);
+            vertical-align: middle;
+        }
+
+        .contact-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .contact-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2a3942, #3a4a54);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--wa-text-secondary);
+            flex-shrink: 0;
+        }
+
+        .contact-name   { font-size: 13px; font-weight: 500; color: var(--wa-text-primary); }
+        .contact-number { font-size: 11px; color: var(--wa-text-muted); margin-top: 1px; }
+
+        .dir-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .dir-badge.out { background: rgba(0,168,132,0.12); color: var(--wa-accent); }
+        .dir-badge.in  { background: rgba(83,189,235,0.12); color: var(--wa-blue); }
+
+        .intent-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .intent-badge.otp      { background: rgba(83,189,235,0.12); color: var(--wa-blue); }
+        .intent-badge.service  { background: rgba(138,75,255,0.15); color: #a78bfa; }
+        .intent-badge.done     { background: rgba(0,168,132,0.12); color: var(--wa-accent); }
+        .intent-badge.default  { background: rgba(134,150,160,0.1); color: var(--wa-text-muted); }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+            color: var(--wa-text-muted);
+            gap: 12px;
+        }
+
+        .empty-state i { font-size: 40px; opacity: 0.4; }
+        .empty-state p { font-size: 14px; }
+
+        /* ═══════════════════════════════════════════════
+           BUTTONS
+        ═══════════════════════════════════════════════ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--wa-accent);
+            color: #fff;
+        }
+        .btn-primary:hover { background: var(--wa-accent-dark); }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--wa-accent);
+            border: 1px solid rgba(0,168,132,0.3);
+        }
+        .btn-ghost:hover { background: rgba(0,168,132,0.08); }
+
+        .btn-danger {
+            background: rgba(241,92,109,0.1);
+            color: var(--wa-red);
+            border: 1px solid rgba(241,92,109,0.2);
+        }
+        .btn-danger:hover { background: rgba(241,92,109,0.18); }
+
+        .btn-subtle {
+            background: var(--wa-input);
+            color: var(--wa-text-secondary);
+        }
+        .btn-subtle:hover { background: #3a4a54; color: var(--wa-text-primary); }
+
+        /* ═══════════════════════════════════════════════
+           TOOLTIP
+        ═══════════════════════════════════════════════ */
+        [data-tip] {
+            position: relative;
+        }
+
+        [data-tip]:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2c34;
+            color: var(--wa-text-primary);
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 5px;
+            white-space: nowrap;
+            pointer-events: none;
+            border: 1px solid var(--wa-border);
+            z-index: 100;
+        }
+
+        /* ═══════════════════════════════════════════════
+           RESPONSIVE
+        ═══════════════════════════════════════════════ */
+        @media (max-width: 768px) {
+            :root { --sidebar-width: 68px; }
+            .brand-info, .nav-item-text, .status-info, .sidebar-search { display: none; }
+            .nav-item { justify-content: center; padding: 14px; }
+            .nav-item.active::before { display: none; }
         }
     </style>
 </head>
-<body class="bg-gray-100 flex h-screen overflow-hidden">
+<body>
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex">
-        <div class="p-6 border-b border-slate-800">
-            <h1 class="text-2xl font-bold text-emerald-400"><i class="fa-brands fa-whatsapp mr-2"></i>PTSP Bot</h1>
-            <p class="text-xs text-slate-400 mt-1">Sistem Pelayanan Terpadu</p>
-        </div>
-        <nav class="flex-1 p-4 space-y-2">
-            <a href="#" onclick="switchTab('dashboard')" class="nav-btn block py-2.5 px-4 rounded transition bg-emerald-600 text-white" id="nav-dashboard">
-                <i class="fa-solid fa-chart-line mr-3"></i> Beranda
-            </a>
-            <a href="#" onclick="switchTab('inbox')" class="nav-btn block py-2.5 px-4 rounded transition hover:bg-slate-800 text-slate-300 hover:text-white" id="nav-inbox">
-                <i class="fa-solid fa-list-check mr-3"></i> Log Pesan
-            </a>
-            <a href="#" onclick="switchTab('contacts')" class="nav-btn block py-2.5 px-4 rounded transition hover:bg-slate-800 text-slate-300 hover:text-white" id="nav-contacts">
-                <i class="fa-solid fa-address-book mr-3"></i> Kontak
-            </a>
-        </nav>
-        <div class="p-4 border-t border-slate-800">
-            <div id="sidebar-status" class="flex items-center text-sm font-medium text-amber-500">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
-                Menyambung...
+<div class="app-shell">
+
+    <!-- ═══════════ SIDEBAR ═══════════ -->
+    <aside class="sidebar">
+
+        <!-- Sidebar Header -->
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <div class="brand-avatar">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <div class="brand-info">
+                    <h1>PTSP Bot</h1>
+                    <p>Pelayanan Terpadu</p>
+                </div>
+            </div>
+            <div class="sidebar-header-actions">
+                <button class="icon-btn" onclick="logoutSession()" data-tip="Keluar" title="Keluar dari dashboard">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
             </div>
         </div>
+
+        <!-- Search -->
+        <div class="sidebar-search">
+            <div class="search-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" class="search-input" placeholder="Cari menu..." oninput="filterNav(this.value)" id="nav-search">
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="sidebar-nav" id="sidebar-nav">
+            <div class="nav-section-label">Menu Utama</div>
+
+            <button class="nav-item active" id="nav-beranda" onclick="switchTab('beranda')">
+                <div class="nav-item-icon-wrap">
+                    <i class="fa-solid fa-house-signal"></i>
+                </div>
+                <div class="nav-item-text">
+                    <div class="nav-item-label">Beranda</div>
+                    <div class="nav-item-desc">Status koneksi bot</div>
+                </div>
+            </button>
+
+            <button class="nav-item" id="nav-pesan" onclick="switchTab('pesan')">
+                <div class="nav-item-icon-wrap">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <div class="nav-item-text">
+                    <div class="nav-item-label">Log Pesan</div>
+                    <div class="nav-item-desc">Riwayat aktivitas</div>
+                </div>
+                <span class="nav-item-badge" id="msg-count" style="display:none">0</span>
+            </button>
+
+            <button class="nav-item" id="nav-kontak" onclick="switchTab('kontak')">
+                <div class="nav-item-icon-wrap">
+                    <i class="fa-solid fa-address-book"></i>
+                </div>
+                <div class="nav-item-text">
+                    <div class="nav-item-label">Kontak</div>
+                    <div class="nav-item-desc">Daftar pemohon</div>
+                </div>
+            </button>
+
+            <div class="nav-divider"></div>
+            <div class="nav-section-label">Informasi</div>
+
+            <div class="nav-item" style="cursor:default">
+                <div class="nav-item-icon-wrap">
+                    <i class="fa-solid fa-network-wired"></i>
+                </div>
+                <div class="nav-item-text">
+                    <div class="nav-item-label">n8n Webhook</div>
+                    <div class="nav-item-desc">Integrasi otomatisasi</div>
+                </div>
+                <span class="wa-badge success" style="font-size:10px; padding:2px 6px;">Aktif</span>
+            </div>
+
+            <div class="nav-item" style="cursor:default">
+                <div class="nav-item-icon-wrap">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <div class="nav-item-text">
+                    <div class="nav-item-label">Database</div>
+                    <div class="nav-item-desc">Supabase PostgreSQL</div>
+                </div>
+                <span class="wa-badge success" id="db-status-badge" style="font-size:10px; padding:2px 6px;">OK</span>
+            </div>
+
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+            <div class="status-pill" id="sidebar-status-pill">
+                <div class="status-dot connecting" id="sidebar-dot"></div>
+                <div class="status-info">
+                    <div class="status-label" id="sidebar-status-label">Menyambung...</div>
+                    <div class="status-sub" id="sidebar-status-sub">Menunggu WhatsApp</div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="font-size:10px; color:var(--wa-text-muted);"></i>
+            </div>
+        </div>
+
     </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50">
-        
-        <!-- Top Header -->
-        <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center z-10">
-            <h2 class="text-xl font-semibold text-gray-800" id="page-title">Beranda Status</h2>
-            <div class="flex items-center space-x-4">
-                <div id="top-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
-                    <i class="fa-solid fa-rotate mr-1 animate-spin"></i> Menunggu...
+    <!-- ═══════════ MAIN PANEL ═══════════ -->
+    <main class="main-panel">
+
+        <!-- Main Header -->
+        <header class="main-header">
+            <div class="main-header-left">
+                <span class="page-title" id="page-title">Beranda Status</span>
+                <div id="wa-conn-badge" class="wa-badge warning">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    Menyambung...
                 </div>
+            </div>
+            <div class="main-header-right">
+                <button class="btn btn-subtle" style="font-size:12px;" onclick="switchTab(currentTab); refreshCurrentTab();">
+                    <i class="fa-solid fa-rotate"></i>
+                    Refresh
+                </button>
+                <div class="user-chip">
+                    <div class="user-chip-avatar" id="user-avatar-initials">A</div>
+                    <span class="user-chip-name" id="header-username">Admin</span>
+                </div>
+                <button class="icon-btn danger" onclick="logoutSession()" title="Keluar">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
             </div>
         </header>
 
-        <!-- Dynamic Content Area -->
-        <div class="flex-1 overflow-y-auto p-6 relative">
-            
-            <!-- Tab: Dashboard / Status -->
-            <div id="tab-dashboard" class="tab-content block">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Status Card -->
-                    <div class="bg-white rounded-xl shadow-sm border p-6 flex flex-col items-center justify-center text-center min-h-[350px]">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Status Koneksi Perangkat</h3>
-                        
-                        <div id="qr-container" class="flex flex-col items-center">
-                            <div id="loader" class="mb-4">
-                                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-500"></i>
-                            </div>
-                            <img id="qr-code" class="hidden w-64 h-64 border p-2 rounded-lg shadow-sm mb-4" alt="QR Code" />
-                            <p id="qr-instruction" class="text-sm text-gray-500 hidden">Buka WhatsApp > Perangkat Tertaut > Scan QR di atas</p>
-                        </div>
-                        
-                        <div id="connected-container" class="hidden flex flex-col items-center text-center">
-                            <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                                <i class="fa-solid fa-check text-4xl text-emerald-500"></i>
-                            </div>
-                            <h4 class="text-xl font-bold text-gray-800">Bot Terhubung & Aktif</h4>
-                            <p class="text-gray-500 mt-2">Mesin bot siap merespons pesan dan memproses antrean.</p>
-                            <button onclick="logoutBot(event)" class="mt-6 px-4 py-2 bg-rose-50 text-rose-600 rounded-lg text-sm font-medium hover:bg-rose-100 transition border border-rose-200 shadow-sm"><i class="fa-solid fa-right-from-bracket mr-2"></i>Logout & Ganti Nomor WA</button>
-                        </div>
+        <!-- ── TAB: BERANDA ── -->
+        <div class="content-area active" id="tab-beranda">
+            <div class="grid-3 mb-4">
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fa-brands fa-whatsapp"></i></div>
+                    <div>
+                        <div class="stat-value" id="stat-status-label">--</div>
+                        <div class="stat-label">Status Koneksi</div>
                     </div>
-
-                    <!-- Info Card -->
-                    <div class="bg-white rounded-xl shadow-sm border p-6">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Informasi Sistem</h3>
-                        <div class="space-y-4">
-                            <div class="flex items-start">
-                                <div class="bg-blue-100 p-2 rounded-lg text-blue-600 mr-4">
-                                    <i class="fa-solid fa-network-wired"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-medium text-gray-800">Integrasi n8n (Webhook)</h4>
-                                    <p class="text-sm text-gray-500">Logika Auto-Reply kini ditangani seutuhnya oleh n8n. Pastikan URL Webhook di .env sudah diatur.</p>
-                                </div>
-                            </div>
-                            <div class="flex items-start">
-                                <div class="bg-purple-100 p-2 rounded-lg text-purple-600 mr-4">
-                                    <i class="fa-solid fa-database"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-medium text-gray-800">Database Supabase</h4>
-                                    <p class="text-sm text-gray-500">Pesan log tersimpan aman di tabel wa_message_logs.</p>
-                                </div>
-                            </div>
-                        </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fa-solid fa-envelope"></i></div>
+                    <div>
+                        <div class="stat-value" id="stat-msg-count">--</div>
+                        <div class="stat-label">Total Pesan</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon yellow"><i class="fa-solid fa-users"></i></div>
+                    <div>
+                        <div class="stat-value" id="stat-contact-count">--</div>
+                        <div class="stat-label">Total Kontak</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab: Log Pesan -->
-            <div id="tab-inbox" class="tab-content hidden h-full">
-                <div class="bg-white rounded-xl shadow-sm border h-full flex flex-col">
-                    <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
-                        <h3 class="font-semibold text-gray-700"><i class="fa-solid fa-list-check mr-2"></i>Log Aktivitas Pesan Pemohon</h3>
-                        <button onclick="fetchMessages()" class="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-sm transition"><i class="fa-solid fa-rotate mr-1"></i>Refresh</button>
+            <div class="grid-2 mb-4">
+                <!-- Status Koneksi WA -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <div class="card-header-icon green"><i class="fa-brands fa-whatsapp"></i></div>
+                            <div>
+                                <div class="card-title">Status Perangkat</div>
+                                <div class="card-subtitle">Koneksi WhatsApp Bot</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex-1 overflow-y-auto p-4 bg-white">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-500 text-sm uppercase border-b">
-                                    <th class="p-4 font-semibold rounded-tl-lg">Waktu</th>
-                                    <th class="p-4 font-semibold">Nomor WA</th>
-                                    <th class="p-4 font-semibold">Konteks / Tujuan</th>
-                                    <th class="p-4 font-semibold rounded-tr-lg">Arah</th>
-                                </tr>
-                            </thead>
-                            <tbody id="messages-table" class="divide-y text-sm text-gray-700">
-                                <tr><td colspan="4" class="p-4 text-center text-gray-500">Memuat data...</td></tr>
-                            </tbody>
-                        </table>
+
+                    <!-- State: Loading -->
+                    <div id="state-loading" class="loader-section">
+                        <div class="wa-spinner"></div>
+                        <p style="color:var(--wa-text-muted);font-size:13px;">Menyambungkan ke WhatsApp...</p>
+                    </div>
+
+                    <!-- State: QR -->
+                    <div id="state-qr" class="qr-section" style="display:none;">
+                        <div class="qr-frame">
+                            <img id="qr-img" src="" alt="QR Code">
+                            <div class="qr-logo"><i class="fa-brands fa-whatsapp"></i></div>
+                        </div>
+                        <p class="qr-title">Tautkan Perangkat</p>
+                        <ul class="qr-steps">
+                            <li><span class="step-num">1</span><span>Buka <strong>WhatsApp</strong> di ponsel Anda</span></li>
+                            <li><span class="step-num">2</span><span>Ketuk <strong>Perangkat Tertaut</strong></span></li>
+                            <li><span class="step-num">3</span><span>Arahkan kamera ke QR Code di atas</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- State: Connected -->
+                    <div id="state-connected" class="connected-section" style="display:none;">
+                        <div class="connected-ring">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </div>
+                        <p class="connected-title">Bot Aktif & Terhubung</p>
+                        <p class="connected-sub">Mesin bot siap merespons pesan pemohon dan memproses antrean secara otomatis.</p>
+                        <button onclick="logoutBot(event)" class="btn btn-danger" style="margin-top:20px;">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            Logout & Ganti Nomor WA
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Info Sistem -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <div class="card-header-icon blue"><i class="fa-solid fa-circle-info"></i></div>
+                            <div>
+                                <div class="card-title">Informasi Sistem</div>
+                                <div class="card-subtitle">Komponen & integrasi aktif</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <div class="info-item-icon" style="background:rgba(83,189,235,0.12);color:var(--wa-blue);">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </div>
+                            <div class="info-item-text">
+                                <div class="info-item-title">Integrasi n8n (Webhook)</div>
+                                <div class="info-item-desc">Logika Auto-Reply ditangani seutuhnya oleh n8n. URL Webhook sudah diatur di konfigurasi.</div>
+                            </div>
+                            <span class="wa-badge success">Aktif</span>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-item-icon" style="background:rgba(138,75,255,0.12);color:#a78bfa;">
+                                <i class="fa-solid fa-database"></i>
+                            </div>
+                            <div class="info-item-text">
+                                <div class="info-item-title">Database Supabase</div>
+                                <div class="info-item-desc">Pesan log & sesi tersimpan aman di PostgreSQL. Antrean outbox diproses setiap 5 detik.</div>
+                            </div>
+                            <span class="wa-badge success">Online</span>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-item-icon" style="background:rgba(255,176,46,0.12);color:var(--wa-yellow);">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <div class="info-item-text">
+                                <div class="info-item-title">Sistem Keamanan</div>
+                                <div class="info-item-desc">Login terenkripsi bcrypt. Sesi HttpOnly tersimpan di database. Rate limiting aktif.</div>
+                            </div>
+                            <span class="wa-badge success">Aman</span>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-item-icon" style="background:rgba(0,168,132,0.12);color:var(--wa-accent);">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <div class="info-item-text">
+                                <div class="info-item-title">Versi Bot</div>
+                                <div class="info-item-desc">PTSP WhatsApp Bot v1.0 • Baileys v7 • Node.js</div>
+                            </div>
+                            <span class="wa-badge info">v1.0</span>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Tab: Contacts -->
-            <div id="tab-contacts" class="tab-content hidden">
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                    <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
-                        <h3 class="font-semibold text-gray-700">Daftar Kontak Terdaftar</h3>
-                        <button onclick="fetchContacts()" class="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-sm transition"><i class="fa-solid fa-rotate mr-1"></i>Refresh</button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-500 text-sm uppercase border-b">
-                                    <th class="p-4 font-semibold">Nama Profile</th>
-                                    <th class="p-4 font-semibold">Nomor WA / JID</th>
-                                    <th class="p-4 font-semibold">Tercatat Sejak</th>
-                                </tr>
-                            </thead>
-                            <tbody id="contacts-table" class="divide-y text-sm text-gray-700">
-                                <tr><td colspan="3" class="p-4 text-center text-gray-500">Memuat data...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
         </div>
+
+        <!-- ── TAB: LOG PESAN ── -->
+        <div class="content-area" id="tab-pesan" style="padding:0; display:none; flex-direction:column; overflow:hidden;">
+            <div class="card" style="margin:16px; flex:1; display:flex; flex-direction:column; overflow:hidden; border-radius:12px;">
+                <div class="card-header" style="flex-shrink:0;">
+                    <div class="card-header-title">
+                        <div class="card-header-icon green"><i class="fa-solid fa-comments"></i></div>
+                        <div>
+                            <div class="card-title">Log Aktivitas Pesan</div>
+                            <div class="card-subtitle">100 pesan terakhir dari pemohon</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-ghost" onclick="fetchMessages()" style="font-size:12px;">
+                        <i class="fa-solid fa-rotate"></i> Refresh
+                    </button>
+                </div>
+                <div style="overflow:auto; flex:1;">
+                    <table class="wa-table">
+                        <thead>
+                            <tr>
+                                <th>Kontak</th>
+                                <th>Waktu</th>
+                                <th>Konteks</th>
+                                <th>Arah</th>
+                            </tr>
+                        </thead>
+                        <tbody id="msg-tbody">
+                            <tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin"></i><p>Memuat data...</p></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── TAB: KONTAK ── -->
+        <div class="content-area" id="tab-kontak" style="padding:0; display:none; flex-direction:column; overflow:hidden;">
+            <div class="card" style="margin:16px; flex:1; display:flex; flex-direction:column; overflow:hidden; border-radius:12px;">
+                <div class="card-header" style="flex-shrink:0;">
+                    <div class="card-header-title">
+                        <div class="card-header-icon yellow"><i class="fa-solid fa-address-book"></i></div>
+                        <div>
+                            <div class="card-title">Daftar Kontak Pemohon</div>
+                            <div class="card-subtitle">Semua nomor yang pernah berinteraksi</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-ghost" onclick="fetchContacts()" style="font-size:12px;">
+                        <i class="fa-solid fa-rotate"></i> Refresh
+                    </button>
+                </div>
+                <div style="overflow:auto; flex:1;">
+                    <table class="wa-table">
+                        <thead>
+                            <tr>
+                                <th>Kontak</th>
+                                <th>Nomor WA</th>
+                                <th>Terdaftar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contact-tbody">
+                            <tr><td colspan="3"><div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin"></i><p>Memuat data...</p></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </main>
+</div>
 
-    <!-- Scripts -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        // API KEY (Sesuai dengan .env, kosong jika tidak dipasang)
-        const API_KEY = ''; 
-        
-        // Navigation Logic
-        function switchTab(tabId) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            // Reset nav styling
-            document.querySelectorAll('.nav-btn').forEach(el => {
-                el.classList.remove('bg-emerald-600', 'text-white');
-                el.classList.add('hover:bg-slate-800', 'text-slate-300');
-            });
-            
-            // Show active tab
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
-            // Style active nav
-            const activeBtn = document.getElementById('nav-' + tabId);
-            activeBtn.classList.remove('hover:bg-slate-800', 'text-slate-300');
-            activeBtn.classList.add('bg-emerald-600', 'text-white');
-            
-            const titles = {
-                'dashboard': 'Beranda Status',
-                'inbox': 'Log Aktivitas Pesan',
-                'contacts': 'Buku Kontak'
-            };
-            document.getElementById('page-title').innerText = titles[tabId];
-
-            // Load data based on tab
-            if(tabId === 'inbox') fetchMessages();
-            if(tabId === 'contacts') fetchContacts();
-        }
-
-        // --- Socket.IO Status Management ---
-        const socket = io();
-        const topBadge = document.getElementById('top-status-badge');
-        const sideStatus = document.getElementById('sidebar-status');
-        const qrCode = document.getElementById('qr-code');
-        const loader = document.getElementById('loader');
-        const qrInst = document.getElementById('qr-instruction');
-        const connCont = document.getElementById('connected-container');
-
-        function setUIStatus(state, msg) {
-            if(state === 'connected') {
-                topBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700";
-                topBadge.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Terhubung`;
-                sideStatus.className = "flex items-center text-sm font-medium text-emerald-400";
-                sideStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-2"></span> Aktif`;
-                
-                loader.classList.add('hidden');
-                qrCode.classList.add('hidden');
-                qrInst.classList.add('hidden');
-                connCont.classList.remove('hidden');
-            } 
-            else if(state === 'qr') {
-                topBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700";
-                topBadge.innerHTML = `<i class="fa-solid fa-qrcode mr-1"></i> Perlu Scan`;
-                sideStatus.className = "flex items-center text-sm font-medium text-amber-400";
-                sideStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-2 animate-pulse"></span> Perlu Scan`;
-                
-                loader.classList.add('hidden');
-                connCont.classList.add('hidden');
-                qrCode.classList.remove('hidden');
-                qrInst.classList.remove('hidden');
-            }
-            else {
-                topBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700";
-                topBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Terputus`;
-                sideStatus.className = "flex items-center text-sm font-medium text-rose-400";
-                sideStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-2"></span> Terputus`;
-                
-                loader.classList.remove('hidden');
-                qrCode.classList.add('hidden');
-                qrInst.classList.add('hidden');
-                connCont.classList.add('hidden');
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    // ═══════════════════════════════════════════════
+    // INTERCEPTOR GLOBAL — redirect ke login jika 401
+    // ═══════════════════════════════════════════════
+    const _origFetch = window.fetch;
+    window.fetch = async function(...args) {
+        const response = await _origFetch(...args);
+        if (response.status === 401) {
+            const data = await response.clone().json().catch(() => ({}));
+            if (data.redirectTo === '/login' || data.authenticated === false) {
+                alert('Sesi Anda telah berakhir. Silakan login kembali.');
+                window.location.href = '/login';
             }
         }
+        return response;
+    };
 
-        socket.on('status', (data) => {
-            if (data.status === 'open') setUIStatus('connected');
-            else setUIStatus('disconnected');
-        });
-
-        socket.on('qr', (qrSrc) => {
-            setUIStatus('qr');
-            qrCode.src = qrSrc;
-        });
-
-        socket.on('disconnect', () => {
-            setUIStatus('disconnected');
-        });
-
-        socket.on('new_message', (msg) => {
-            // Refresh inbox automatically if tab is open
-            if(!document.getElementById('tab-inbox').classList.contains('hidden')) {
-                fetchMessages();
-            }
-        });
-
-        // --- Data Fetching ---
-        function formatTime(timestamp) {
-            return new Date(timestamp * 1000).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
-        }
-
-        function determineIntent(text) {
-            if (!text) return '<span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">Lainnya</span>';
-            const t = text.toLowerCase();
-            if (t.includes('otp') || t.includes('sandi') || t.includes('password')) {
-                return '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Lupa Password / OTP</span>';
-            }
-            if (t.includes('layanan') || t.includes('pengajuan') || t.includes('permohonan')) {
-                return '<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Pengajuan Layanan</span>';
-            }
-            if (t.includes('selesai') || t.includes('diambil')) {
-                return '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">Layanan Selesai</span>';
-            }
-            return '<span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium">Pesan Biasa</span>';
-        }
-
-        async function fetchMessages() {
-            try {
-                const res = await fetch('/api/messages');
-                const result = await res.json();
-                const tbody = document.getElementById('messages-table');
-                if(!tbody) return;
-                tbody.innerHTML = '';
-                
-                if(result.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">Belum ada aktivitas pesan terekam.</td></tr>';
-                    return;
+    // ═══════════════════════════════════════════════
+    // INFO USER
+    // ═══════════════════════════════════════════════
+    (async () => {
+        try {
+            const res = await _origFetch('/api/auth/status');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.username) {
+                    document.getElementById('header-username').textContent = data.username;
+                    document.getElementById('user-avatar-initials').textContent = data.username[0].toUpperCase();
                 }
+            }
+        } catch(e) {}
+    })();
 
-                result.data.forEach(log => {
-                    const isOut = log.is_from_me;
-                    const directionHTML = isOut 
-                        ? '<span class="text-emerald-600 font-medium"><i class="fa-solid fa-arrow-right mr-1"></i>Keluar</span>'
-                        : '<span class="text-blue-600 font-medium"><i class="fa-solid fa-arrow-left mr-1"></i>Masuk</span>';
-                    
-                    const jid = log.remote_jid.split('@')[0];
-                    const intent = determineIntent(log.content);
-                    const time = formatTime(log.timestamp);
-                    
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="p-4 text-gray-500 whitespace-nowrap">${time}</td>
-                            <td class="p-4 font-semibold text-gray-800">${jid}</td>
-                            <td class="p-4">${intent}</td>
-                            <td class="p-4">${directionHTML}</td>
-                        </tr>
-                    `;
-                });
-            } catch (err) {
-                console.error(err);
+    // ═══════════════════════════════════════════════
+    // TAB NAVIGATION
+    // ═══════════════════════════════════════════════
+    let currentTab = 'beranda';
+
+    function switchTab(tab) {
+        currentTab = tab;
+
+        // Hide all content areas
+        document.querySelectorAll('.content-area').forEach(el => {
+            el.classList.remove('active');
+            el.style.display = 'none';
+        });
+
+        // Reset nav items
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+        // Show active tab
+        const tabEl = document.getElementById('tab-' + tab);
+        if (tabEl) {
+            tabEl.classList.add('active');
+            // For table tabs use flex
+            if (tab === 'pesan' || tab === 'kontak') {
+                tabEl.style.display = 'flex';
+            } else {
+                tabEl.style.display = 'block';
             }
         }
 
-        async function fetchContacts() {
-            try {
-                const res = await fetch('/api/contacts');
-                const result = await res.json();
-                const tbody = document.getElementById('contacts-table');
-                tbody.innerHTML = '';
-                
-                if(result.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-500">Belum ada kontak terekam.</td></tr>';
-                    return;
-                }
+        // Active nav
+        const navEl = document.getElementById('nav-' + tab);
+        if (navEl) navEl.classList.add('active');
 
-                result.data.forEach(c => {
-                    const date = new Date(c.created_at).toLocaleDateString('id-ID');
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="p-4 font-medium text-gray-800">${c.name || '<i>Tanpa Nama</i>'}</td>
-                            <td class="p-4 text-gray-600">${c.remote_jid.split('@')[0]}</td>
-                            <td class="p-4 text-gray-500 text-sm">${date}</td>
-                        </tr>
-                    `;
-                });
-            } catch (err) {
-                console.error(err);
+        // Page title
+        const titles = { beranda: 'Beranda Status', pesan: 'Log Aktivitas Pesan', kontak: 'Buku Kontak' };
+        document.getElementById('page-title').textContent = titles[tab] || tab;
+
+        if (tab === 'pesan')  fetchMessages();
+        if (tab === 'kontak') fetchContacts();
+    }
+
+    function refreshCurrentTab() {
+        if (currentTab === 'pesan')  fetchMessages();
+        if (currentTab === 'kontak') fetchContacts();
+    }
+
+    function filterNav(q) {
+        const items = document.querySelectorAll('.nav-item');
+        items.forEach(item => {
+            const label = item.querySelector('.nav-item-label');
+            if (!label) return;
+            item.style.display = label.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+        });
+    }
+
+    // ═══════════════════════════════════════════════
+    // SOCKET.IO — STATUS WA
+    // ═══════════════════════════════════════════════
+    const socket = io();
+
+    function setWAStatus(state, qrSrc) {
+        const badge  = document.getElementById('wa-conn-badge');
+        const dot    = document.getElementById('sidebar-dot');
+        const slabel = document.getElementById('sidebar-status-label');
+        const ssub   = document.getElementById('sidebar-status-sub');
+        const statLabel = document.getElementById('stat-status-label');
+
+        const stL  = document.getElementById('state-loading');
+        const stQ  = document.getElementById('state-qr');
+        const stC  = document.getElementById('state-connected');
+
+        // Reset display
+        stL.style.display = stQ.style.display = stC.style.display = 'none';
+
+        if (state === 'open') {
+            stC.style.display = 'flex';
+            badge.className = 'wa-badge success';
+            badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Terhubung';
+            dot.className = 'status-dot online';
+            slabel.textContent = 'Bot Aktif';
+            ssub.textContent = 'WhatsApp terhubung';
+            if (statLabel) statLabel.textContent = 'Online';
+        } else if (state === 'qr') {
+            stQ.style.display = 'flex';
+            if (qrSrc) document.getElementById('qr-img').src = qrSrc;
+            badge.className = 'wa-badge info';
+            badge.innerHTML = '<i class="fa-solid fa-qrcode fa-beat-fade"></i> Perlu Scan QR';
+            dot.className = 'status-dot scanning';
+            slabel.textContent = 'Perlu Scan';
+            ssub.textContent = 'Scan QR di beranda';
+            if (statLabel) statLabel.textContent = 'Scan QR';
+        } else {
+            stL.style.display = 'flex';
+            badge.className = 'wa-badge warning';
+            badge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menyambung...';
+            dot.className = 'status-dot connecting';
+            slabel.textContent = 'Menyambung...';
+            ssub.textContent = 'Menghubungkan bot';
+            if (statLabel) statLabel.textContent = 'Offline';
+        }
+    }
+
+    socket.on('status', (data) => {
+        setWAStatus(data.status === 'open' ? 'open' : 'connecting');
+    });
+
+    socket.on('qr', (qrSrc) => {
+        setWAStatus('qr', qrSrc);
+    });
+
+    socket.on('disconnect', () => setWAStatus('disconnected'));
+
+    socket.on('new_message', () => {
+        if (currentTab === 'pesan') fetchMessages();
+        // Update badge
+        fetchStats();
+    });
+
+    // ═══════════════════════════════════════════════
+    // FETCH DATA
+    // ═══════════════════════════════════════════════
+    function formatTime(ts) {
+        const d = new Date(ts * 1000);
+        return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getInitials(name) {
+        return (name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    }
+
+    function getIntent(text) {
+        if (!text) return '<span class="intent-badge default">Lainnya</span>';
+        const t = text.toLowerCase();
+        if (t.includes('otp') || t.includes('sandi') || t.includes('password'))
+            return '<span class="intent-badge otp"><i class="fa-solid fa-key" style="margin-right:4px;font-size:10px;"></i>OTP / Password</span>';
+        if (t.includes('layanan') || t.includes('pengajuan') || t.includes('permohonan'))
+            return '<span class="intent-badge service"><i class="fa-solid fa-file-signature" style="margin-right:4px;font-size:10px;"></i>Pengajuan</span>';
+        if (t.includes('selesai') || t.includes('diambil'))
+            return '<span class="intent-badge done"><i class="fa-solid fa-circle-check" style="margin-right:4px;font-size:10px;"></i>Selesai</span>';
+        return '<span class="intent-badge default">Pesan Biasa</span>';
+    }
+
+    async function fetchMessages() {
+        const tbody = document.getElementById('msg-tbody');
+        tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="wa-spinner" style="width:28px;height:28px;border-width:2px;"></div></div></td></tr>';
+        try {
+            const res  = await fetch('/api/messages');
+            const data = await res.json();
+            if (!data.success || data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fa-regular fa-comments"></i><p>Belum ada pesan terekam</p></div></td></tr>';
+                return;
             }
+            const countEl = document.getElementById('msg-count');
+            countEl.textContent = data.data.length;
+            countEl.style.display = data.data.length > 0 ? '' : 'none';
+            document.getElementById('stat-msg-count').textContent = data.data.length;
+
+            tbody.innerHTML = data.data.map(log => {
+                const jid = log.remote_jid.replace('@s.whatsapp.net','').replace('@g.us','');
+                const dir = log.is_from_me
+                    ? '<span class="dir-badge out"><i class="fa-solid fa-arrow-up-right" style="font-size:9px;"></i>Keluar</span>'
+                    : '<span class="dir-badge in"><i class="fa-solid fa-arrow-down-left" style="font-size:9px;"></i>Masuk</span>';
+                return `
+                    <tr>
+                        <td>
+                            <div class="contact-row">
+                                <div class="contact-avatar">${getInitials(jid)}</div>
+                                <div>
+                                    <div class="contact-name">${jid}</div>
+                                    <div class="contact-number">${log.message_type || 'text'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="white-space:nowrap;color:var(--wa-text-muted);">${formatTime(log.timestamp)}</td>
+                        <td>${getIntent(log.content)}</td>
+                        <td>${dir}</td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Gagal memuat data</p></div></td></tr>';
         }
+    }
 
-        // --- Sending Messages ---
-        async function sendAPI(to, text) {
-            const res = await fetch('/api/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-                body: JSON.stringify({ to, text })
-            });
-            return res.json();
-        }
-
-
-
-        async function logoutBot(event) {
-            if(!confirm('Yakin ingin logout? Sesi WA saat ini akan dihapus dan Anda harus melakukan scan QR ulang dengan nomor WhatsApp yang baru.')) return;
-            try {
-                const btn = event.currentTarget;
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memproses Logout...';
-                btn.disabled = true;
-
-                const res = await fetch('/api/logout', { method: 'POST' });
-                const result = await res.json();
-                
-                if(result.success) {
-                    alert('Logout berhasil! Server bot sedang menyiapkan ulang QR Code. Halaman ini akan termuat ulang otomatis dalam 3 detik.');
-                    setTimeout(() => window.location.reload(), 3000);
-                } else {
-                    alert('Gagal logout: ' + result.error);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-            } catch(e) {
-                console.error(e);
+    async function fetchContacts() {
+        const tbody = document.getElementById('contact-tbody');
+        tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><div class="wa-spinner" style="width:28px;height:28px;border-width:2px;"></div></div></td></tr>';
+        try {
+            const res  = await fetch('/api/contacts');
+            const data = await res.json();
+            if (!data.success || data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><i class="fa-regular fa-address-book"></i><p>Belum ada kontak terekam</p></div></td></tr>';
+                return;
             }
+            document.getElementById('stat-contact-count').textContent = data.data.length;
+            tbody.innerHTML = data.data.map(c => {
+                const jid = c.remote_jid.replace('@s.whatsapp.net','');
+                const date = new Date(c.created_at).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+                const name = c.name || 'Tanpa Nama';
+                return `
+                    <tr>
+                        <td>
+                            <div class="contact-row">
+                                <div class="contact-avatar" style="background:linear-gradient(135deg,var(--wa-accent-dark),var(--wa-accent));color:#fff;">
+                                    ${getInitials(name)}
+                                </div>
+                                <div class="contact-name">${name}</div>
+                            </div>
+                        </td>
+                        <td style="color:var(--wa-text-secondary);font-family:monospace;font-size:13px;">+${jid}</td>
+                        <td style="color:var(--wa-text-muted);font-size:12px;">${date}</td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Gagal memuat data</p></div></td></tr>';
         }
-    </script>
+    }
+
+    async function fetchStats() {
+        try {
+            const [mRes, cRes] = await Promise.all([
+                _origFetch('/api/messages'),
+                _origFetch('/api/contacts')
+            ]);
+            const [mData, cData] = await Promise.all([mRes.json(), cRes.json()]);
+            if (mData.success) document.getElementById('stat-msg-count').textContent = mData.data.length;
+            if (cData.success) document.getElementById('stat-contact-count').textContent = cData.data.length;
+        } catch(e) {}
+    }
+
+    // Load stats on startup
+    fetchStats();
+
+    // ═══════════════════════════════════════════════
+    // LOGOUT WA BOT
+    // ═══════════════════════════════════════════════
+    async function logoutBot(event) {
+        if (!confirm('Yakin ingin logout WhatsApp? Sesi WA saat ini akan dihapus dan Anda harus scan QR ulang.')) return;
+        const btn = event.currentTarget;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+        btn.disabled = true;
+        try {
+            const res    = await fetch('/api/logout', { method: 'POST' });
+            const result = await res.json();
+            if (result.success) {
+                alert('Logout WA berhasil! Halaman akan dimuat ulang dalam 3 detik untuk menampilkan QR baru.');
+                setTimeout(() => window.location.reload(), 3000);
+            } else {
+                alert('Gagal logout: ' + result.error);
+                btn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Logout & Ganti Nomor WA';
+                btn.disabled = false;
+            }
+        } catch(e) {
+            btn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Logout & Ganti Nomor WA';
+            btn.disabled = false;
+        }
+    }
+
+    // ═══════════════════════════════════════════════
+    // LOGOUT SESI ADMIN
+    // ═══════════════════════════════════════════════
+    async function logoutSession() {
+        if (!confirm('Yakin ingin keluar dari dashboard? Anda perlu login kembali.')) return;
+        try {
+            const res    = await _origFetch('/api/auth/logout', { method: 'POST' });
+            const result = await res.json();
+            if (result.success) window.location.href = result.redirectTo || '/login';
+        } catch(e) {
+            alert('Terjadi kesalahan. Silakan refresh halaman.');
+        }
+    }
+</script>
 </body>
 </html>
-
