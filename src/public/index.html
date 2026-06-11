@@ -147,6 +147,50 @@
             color: var(--wa-red);
         }
 
+        /* Hamburger Menu Toggle (mobile) */
+        .menu-toggle {
+            display: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--wa-icon);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: background 0.15s, color 0.15s;
+            flex-shrink: 0;
+        }
+
+        .menu-toggle:hover {
+            background: rgba(134,150,160,0.1);
+            color: var(--wa-text-primary);
+        }
+
+        .menu-close {
+            display: none;
+        }
+
+        /* Sidebar Overlay (mobile) */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
         /* Search Bar */
         .sidebar-search {
             padding: 8px 12px;
@@ -919,10 +963,104 @@
            RESPONSIVE
         ═══════════════════════════════════════════════ */
         @media (max-width: 768px) {
-            :root { --sidebar-width: 68px; }
-            .brand-info, .nav-item-text, .status-info, .sidebar-search { display: none; }
-            .nav-item { justify-content: center; padding: 14px; }
-            .nav-item.active::before { display: none; }
+            .menu-toggle {
+                display: flex;
+            }
+
+            .sidebar-overlay {
+                display: block;
+            }
+
+            .app-shell {
+                box-shadow: none;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 85vw;
+                max-width: 320px;
+                height: 100vh;
+                z-index: 30;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            body.sidebar-open {
+                overflow: hidden;
+            }
+
+            .main-panel {
+                width: 100%;
+            }
+
+            .main-header {
+                padding: 0 12px;
+            }
+
+            .user-chip-name {
+                display: none;
+            }
+
+            .user-chip {
+                padding: 4px 8px 4px 4px;
+            }
+
+            .sidebar-header .menu-close {
+                display: flex;
+            }
+
+            .content-area {
+                padding: 12px;
+            }
+
+            .card-header {
+                padding: 12px 14px;
+            }
+
+            .card-body {
+                padding: 14px;
+            }
+
+            .stat-card {
+                padding: 12px;
+                gap: 10px;
+            }
+
+            .stat-value {
+                font-size: 18px;
+            }
+
+            .stat-icon {
+                width: 38px;
+                height: 38px;
+                font-size: 15px;
+            }
+
+            .qr-frame img {
+                width: 150px;
+                height: 150px;
+            }
+
+            .qr-section, .connected-section {
+                min-height: 260px;
+                padding: 16px;
+            }
+
+            .wa-table th, .wa-table td {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -945,8 +1083,8 @@
                 </div>
             </div>
             <div class="sidebar-header-actions">
-                <button class="icon-btn" onclick="logoutSession()" data-tip="Keluar" title="Keluar dari dashboard">
-                    <i class="fa-solid fa-right-from-bracket"></i>
+                <button class="icon-btn menu-close" onclick="toggleSidebar()" data-tip="Tutup menu" title="Tutup menu navigasi">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
         </div>
@@ -1019,6 +1157,17 @@
                 <span class="wa-badge success" id="db-status-badge" style="font-size:10px; padding:2px 6px;">OK</span>
             </div>
 
+            <div class="nav-divider"></div>
+            <button class="nav-item" onclick="logoutSession()" id="nav-logout">
+                <div class="nav-item-icon-wrap" style="color:var(--wa-red);">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </div>
+                <div class="nav-item-text">
+                    <div class="nav-item-label" style="color:var(--wa-red);">Keluar</div>
+                    <div class="nav-item-desc">Akhiri sesi dashboard</div>
+                </div>
+            </button>
+
         </nav>
 
         <!-- Sidebar Footer -->
@@ -1035,17 +1184,19 @@
 
     </aside>
 
+    <!-- ═══════════ SIDEBAR OVERLAY (mobile) ═══════════ -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <!-- ═══════════ MAIN PANEL ═══════════ -->
     <main class="main-panel">
 
         <!-- Main Header -->
         <header class="main-header">
             <div class="main-header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Buka menu navigasi">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 <span class="page-title" id="page-title">Beranda Status</span>
-                <div id="wa-conn-badge" class="wa-badge warning">
-                    <i class="fa-solid fa-circle-notch fa-spin"></i>
-                    Menyambung...
-                </div>
             </div>
             <div class="main-header-right">
                 <button class="btn btn-subtle" style="font-size:12px;" onclick="switchTab(currentTab); refreshCurrentTab();">
@@ -1056,9 +1207,6 @@
                     <div class="user-chip-avatar" id="user-avatar-initials">A</div>
                     <span class="user-chip-name" id="header-username">Admin</span>
                 </div>
-                <button class="icon-btn danger" onclick="logoutSession()" title="Keluar">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
             </div>
         </header>
 
@@ -1355,7 +1503,6 @@
     const socket = io();
 
     function setWAStatus(state, qrSrc) {
-        const badge  = document.getElementById('wa-conn-badge');
         const dot    = document.getElementById('sidebar-dot');
         const slabel = document.getElementById('sidebar-status-label');
         const ssub   = document.getElementById('sidebar-status-sub');
@@ -1370,8 +1517,6 @@
 
         if (state === 'open') {
             stC.style.display = 'flex';
-            badge.className = 'wa-badge success';
-            badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Terhubung';
             dot.className = 'status-dot online';
             slabel.textContent = 'Bot Aktif';
             ssub.textContent = 'WhatsApp terhubung';
@@ -1379,16 +1524,12 @@
         } else if (state === 'qr') {
             stQ.style.display = 'flex';
             if (qrSrc) document.getElementById('qr-img').src = qrSrc;
-            badge.className = 'wa-badge info';
-            badge.innerHTML = '<i class="fa-solid fa-qrcode fa-beat-fade"></i> Perlu Scan QR';
             dot.className = 'status-dot scanning';
             slabel.textContent = 'Perlu Scan';
             ssub.textContent = 'Scan QR di beranda';
             if (statLabel) statLabel.textContent = 'Scan QR';
         } else {
             stL.style.display = 'flex';
-            badge.className = 'wa-badge warning';
-            badge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menyambung...';
             dot.className = 'status-dot connecting';
             slabel.textContent = 'Menyambung...';
             ssub.textContent = 'Menghubungkan bot';
@@ -1566,6 +1707,33 @@
             alert('Terjadi kesalahan. Silakan refresh halaman.');
         }
     }
+
+    // ═══════════════════════════════════════════════
+    // SIDEBAR TOGGLE (mobile hamburger menu)
+    // ═══════════════════════════════════════════════
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        const body = document.body;
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+        body.classList.toggle('sidebar-open');
+    }
+
+    // Auto-close sidebar on nav item click (mobile)
+    document.querySelectorAll('.nav-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                var sidebar = document.querySelector('.sidebar');
+                var overlay = document.querySelector('.sidebar-overlay');
+                if (sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                    document.body.classList.remove('sidebar-open');
+                }
+            }
+        });
+    });
 </script>
 </body>
 </html>
