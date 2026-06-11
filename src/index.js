@@ -175,10 +175,21 @@ app.post('/api/auth/login', loginRateLimiter, async (req, res) => {
   }
 
   try {
+    // Auto-detect: jika hash dari env var adalah Base64 (tidak dimulai $2b$), decode dulu
+    // Ini diperlukan karena Coolify/Docker kadang corrupt karakter $ pada nilai env var
+    let resolvedHash = adminPasswordHash;
+    if (!adminPasswordHash.startsWith('$2')) {
+      try {
+        resolvedHash = Buffer.from(adminPasswordHash, 'base64').toString('utf-8');
+      } catch (e) {
+        resolvedHash = adminPasswordHash; // fallback ke raw jika decode gagal
+      }
+    }
+
     // Bandingkan username (case-insensitive untuk UX yang lebih baik)
     const usernameMatch = username.toLowerCase() === adminUsername.toLowerCase();
     // Bandingkan password dengan hash menggunakan bcrypt
-    const passwordMatch = await bcrypt.compare(password, adminPasswordHash);
+    const passwordMatch = await bcrypt.compare(password, resolvedHash);
 
     if (usernameMatch && passwordMatch) {
       // Regenerate session ID untuk mencegah Session Fixation attack

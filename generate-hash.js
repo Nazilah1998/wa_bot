@@ -23,16 +23,21 @@ if (password.length < 8) {
   process.exit(1);
 }
 
-const COST_FACTOR = 12; // Semakin tinggi = semakin aman tapi lebih lambat
+const COST_FACTOR = 12;
 
 console.log('\n🔐 Generating bcrypt hash...\n');
 
 bcrypt.hash(password, COST_FACTOR).then(hash => {
+  const base64Hash = Buffer.from(hash).toString('base64');
+
   console.log('✅ Hash berhasil dibuat!\n');
-  console.log('Salin baris ini ke file .env Anda:');
-  console.log('─'.repeat(60));
+  console.log('━'.repeat(65));
+  console.log('📋 GUNAKAN VERSI BASE64 INI untuk Coolify/Docker (AMAN, tanpa $):');
+  console.log('━'.repeat(65));
+  console.log(`ADMIN_PASSWORD_HASH=${base64Hash}`);
+  console.log('━'.repeat(65));
+  console.log('\n📋 Versi raw bcrypt (untuk .env lokal):');
   console.log(`ADMIN_PASSWORD_HASH=${hash}`);
-  console.log('─'.repeat(60));
   console.log('\n⚠️  JANGAN bagikan hash ini ke siapapun!');
   console.log('⚠️  Simpan password asli Anda di tempat yang aman.\n');
 });
