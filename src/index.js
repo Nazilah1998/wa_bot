@@ -306,21 +306,36 @@ app.post('/api/send', async (req, res) => {
   try {
     let cleanNumber = to.replace(/\D/g, '');
     if (cleanNumber.startsWith('0')) cleanNumber = '62' + cleanNumber.substring(1);
+    
+    if (cleanNumber.length < 9) {
+      console.warn(`[API] Nomor terlalu pendek/tidak valid: ${cleanNumber}`);
+      return res.status(400).json({ success: false, message: 'Nomor WhatsApp tidak valid' });
+    }
+
     const formattedTo = cleanNumber.includes('@s.whatsapp.net') ? cleanNumber : `${cleanNumber}@s.whatsapp.net`;
 
-    console.log(`[API] Menerima request kirim pesan ke: ${formattedTo}`);
-    await simulateTyping(globalSock, formattedTo);
-    await globalSock.sendMessage(formattedTo, { text: text });
+    // Cek apakah nomor aktif dan terdaftar di WhatsApp
+    const [result] = await globalSock.onWhatsApp(formattedTo);
+    if (!result || !result.exists) {
+      console.warn(`[API] Nomor tidak terdaftar di WA: ${formattedTo}`);
+      return res.status(400).json({ success: false, message: 'Nomor belum terdaftar di WhatsApp' });
+    }
+
+    const finalJid = result.jid || formattedTo;
+
+    console.log(`[API] Menerima request kirim pesan ke: ${finalJid}`);
+    await simulateTyping(globalSock, finalJid, text);
+    await globalSock.sendMessage(finalJid, { text: text });
 
     try {
       const db = require('./db');
       await db.query(
         "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
-        [formattedTo, 'Pemohon / Klien']
+        [finalJid, 'Pemohon / Klien']
       );
       await db.query(
         "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
-        [formattedTo, true, 'conversation', text, Math.floor(Date.now() / 1000)]
+        [finalJid, true, 'conversation', text, Math.floor(Date.now() / 1000)]
       );
     } catch (dbErr) {
       console.error('Pesan WA terkirim, tapi gagal mencatat log ke DB:', dbErr.message);
@@ -500,23 +515,39 @@ setInterval(async () => {
 
       let cleanNumber = row.phone.replace(/\D/g, '');
       if (cleanNumber.startsWith('0')) cleanNumber = '62' + cleanNumber.substring(1);
+
+      if (cleanNumber.length < 9) {
+        console.warn(`[Queue] Nomor tidak valid: ${cleanNumber}. Mengabaikan pesan.`);
+        await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'failed' WHERE id = $1", [row.id]);
+        continue;
+      }
+
       const formattedTo = cleanNumber.includes('@s.whatsapp.net') ? cleanNumber : `${cleanNumber}@s.whatsapp.net`;
 
-      console.log(`[Queue] Mengirim pesan antrean ke: ${formattedTo}`);
-
       try {
-        await simulateTyping(globalSock, formattedTo);
-        await globalSock.sendMessage(formattedTo, { text: row.message });
+        // Cek apakah nomor aktif dan terdaftar di WhatsApp
+        const [result] = await globalSock.onWhatsApp(formattedTo);
+        if (!result || !result.exists) {
+          console.warn(`[Queue] Nomor tidak terdaftar di WA: ${formattedTo}. Mengabaikan pesan.`);
+          await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'failed' WHERE id = $1", [row.id]);
+          continue;
+        }
+
+        const finalJid = result.jid || formattedTo;
+        console.log(`[Queue] Mengirim pesan antrean ke: ${finalJid}`);
+
+        await simulateTyping(globalSock, finalJid, row.message);
+        await globalSock.sendMessage(finalJid, { text: row.message });
         await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'sent', sent_at = NOW() WHERE id = $1", [row.id]);
 
         try {
           await db.query(
             "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
-            [formattedTo, 'Pemohon (Notifikasi)']
+            [finalJid, 'Pemohon (Notifikasi)']
           );
           await db.query(
             "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
-            [formattedTo, true, 'conversation', row.message, Math.floor(Date.now() / 1000)]
+            [finalJid, true, 'conversation', row.message, Math.floor(Date.now() / 1000)]
           );
         } catch (dbErr) {
           console.error(`[Queue] Pesan terkirim, tapi gagal log DB untuk ${formattedTo}:`, dbErr.message);
