@@ -294,9 +294,9 @@ app.post('/api/send', async (req, res) => {
     return res.status(401).json({ success: false, message: 'Tidak terautentikasi. Gunakan API Key atau login terlebih dahulu.' });
   }
 
-  const { to, text } = req.body;
-  if (!to || !text) {
-    return res.status(400).json({ success: false, message: 'Parameter "to" dan "text" wajib diisi' });
+  const { to, text, mediaUrl, mediaType, fileName } = req.body;
+  if (!to || (!text && !mediaUrl)) {
+    return res.status(400).json({ success: false, message: 'Parameter "to" dan salah satu antara "text" atau "mediaUrl" wajib diisi' });
   }
 
   if (!globalSock || connectionStatus !== 'open') {
@@ -324,8 +324,28 @@ app.post('/api/send', async (req, res) => {
     const finalJid = result.jid || formattedTo;
 
     console.log(`[API] Menerima request kirim pesan ke: ${finalJid}`);
-    await simulateTyping(globalSock, finalJid, text);
-    await globalSock.sendMessage(finalJid, { text: text });
+    
+    const actualText = text || '';
+    if (mediaUrl) {
+      let msgOptions = {};
+      const finalFileName = fileName || 'Document';
+      
+      if (mediaType === 'image') {
+        msgOptions = { image: { url: mediaUrl }, caption: actualText };
+      } else if (mediaType === 'video') {
+        msgOptions = { video: { url: mediaUrl }, caption: actualText };
+      } else if (mediaType === 'audio') {
+        msgOptions = { audio: { url: mediaUrl }, mimetype: 'audio/mp4', ptt: false };
+      } else {
+        msgOptions = { document: { url: mediaUrl }, mimetype: 'application/pdf', fileName: finalFileName, caption: actualText };
+      }
+      
+      if (actualText) await simulateTyping(globalSock, finalJid, actualText);
+      await globalSock.sendMessage(finalJid, msgOptions);
+    } else {
+      await simulateTyping(globalSock, finalJid, actualText);
+      await globalSock.sendMessage(finalJid, { text: actualText });
+    }
 
     try {
       const db = require('./db');
@@ -333,9 +353,13 @@ app.post('/api/send', async (req, res) => {
         "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
         [finalJid, 'Pemohon / Klien']
       );
+      
+      const logContent = mediaUrl ? `[Media: ${mediaType || 'document'}] ${actualText}` : actualText;
+      const logMessageType = mediaUrl ? (mediaType === 'image' ? 'imageMessage' : 'documentMessage') : 'conversation';
+      
       await db.query(
         "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
-        [finalJid, true, 'conversation', text, Math.floor(Date.now() / 1000)]
+        [finalJid, true, logMessageType, logContent, Math.floor(Date.now() / 1000)]
       );
     } catch (dbErr) {
       console.error('Pesan WA terkirim, tapi gagal mencatat log ke DB:', dbErr.message);
@@ -536,8 +560,28 @@ setInterval(async () => {
         const finalJid = result.jid || formattedTo;
         console.log(`[Queue] Mengirim pesan antrean ke: ${finalJid}`);
 
-        await simulateTyping(globalSock, finalJid, row.message);
-        await globalSock.sendMessage(finalJid, { text: row.message });
+        const actualText = row.message || '';
+        if (row.media_url) {
+          let msgOptions = {};
+          const finalFileName = row.file_name || 'Document';
+          
+          if (row.media_type === 'image') {
+            msgOptions = { image: { url: row.media_url }, caption: actualText };
+          } else if (row.media_type === 'video') {
+            msgOptions = { video: { url: row.media_url }, caption: actualText };
+          } else if (row.media_type === 'audio') {
+            msgOptions = { audio: { url: row.media_url }, mimetype: 'audio/mp4', ptt: false };
+          } else {
+            msgOptions = { document: { url: row.media_url }, mimetype: 'application/pdf', fileName: finalFileName, caption: actualText };
+          }
+          
+          if (actualText) await simulateTyping(globalSock, finalJid, actualText);
+          await globalSock.sendMessage(finalJid, msgOptions);
+        } else {
+          await simulateTyping(globalSock, finalJid, actualText);
+          await globalSock.sendMessage(finalJid, { text: actualText });
+        }
+        
         await db.query("UPDATE ptsp_whatsapp_outbox SET status = 'sent', sent_at = NOW() WHERE id = $1", [row.id]);
 
         try {
@@ -545,9 +589,13 @@ setInterval(async () => {
             "INSERT INTO wa_contacts (remote_jid, name) VALUES ($1, $2) ON CONFLICT (remote_jid) DO NOTHING",
             [finalJid, 'Pemohon (Notifikasi)']
           );
+          
+          const logContent = row.media_url ? `[Media: ${row.media_type || 'document'}] ${actualText}` : actualText;
+          const logMessageType = row.media_url ? (row.media_type === 'image' ? 'imageMessage' : 'documentMessage') : 'conversation';
+          
           await db.query(
             "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
-            [finalJid, true, 'conversation', row.message, Math.floor(Date.now() / 1000)]
+            [finalJid, true, logMessageType, logContent, Math.floor(Date.now() / 1000)]
           );
         } catch (dbErr) {
           console.error(`[Queue] Pesan terkirim, tapi gagal log DB untuk ${formattedTo}:`, dbErr.message);
