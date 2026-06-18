@@ -31,11 +31,56 @@ async function simulateTyping(sock, jid, text = "") {
   }
 }
 
+const processedMessages = new Set();
+
 async function handleMessage(sock, msg) {
   // Hanya proses jika pesan valid
   if (!msg.message || msg.key.fromMe) return;
 
-  const sender = msg.key.remoteJid;
+  // Hindari duplikasi pesan (karena WA sering kirim event ganda)
+  if (processedMessages.has(msg.key.id)) return;
+  processedMessages.add(msg.key.id);
+  if (processedMessages.size > 500) {
+    const iterator = processedMessages.values();
+    for (let i = 0; i < 100; i++) processedMessages.delete(iterator.next().value);
+  }
+
+  // Untuk group chat, gunakan participant (pengirim asli)
+  // Untuk personal chat, remoteJid = pengirim
+  const isGroup = msg.key.remoteJid.endsWith('@g.us');
+  let sender = isGroup ? msg.key.participant : msg.key.remoteJid;
+
+  // Coba dapatkan nomor HP asli jika Baileys melampirkannya
+  let realJid = sender;
+  if (sender && sender.endsWith('@lid')) {
+    // Muat mapping LID jika belum ada di memori
+    if (!global.lidMappings) {
+      const fs = require('fs');
+      if (fs.existsSync('./lid_mappings.json')) {
+        try {
+          global.lidMappings = JSON.parse(fs.readFileSync('./lid_mappings.json', 'utf8'));
+        } catch(e) {}
+      }
+    }
+
+    // 1. Cek apakah ada lidPnMappings di memori (jika kita simpan saat history sync)
+    if (global.lidMappings && global.lidMappings[sender]) {
+      realJid = global.lidMappings[sender];
+    }
+    // 2. Fallback: Cek apakah pesan berasal dari "Message to Yourself" (bot itu sendiri)
+    const botLid = sock.authState?.creds?.me?.lid;
+    if (botLid && sender === botLid) {
+        realJid = (sock.authState.creds.me.id.split(':')[0]) + '@s.whatsapp.net';
+    }
+    
+    // Log pesan utuh agar kita bisa analisis jika nomor HP tidak ditemukan
+    if (realJid === sender) {
+       console.log("[DEBUG LID] Pesan dari LID:", sender, "Msg ID:", msg.key.id);
+    }
+  }
+
+  sender = realJid;
+
   const messageType = Object.keys(msg.message)[0];
   const text =
     messageType === "conversation"
@@ -64,8 +109,74 @@ async function handleMessage(sock, msg) {
     console.error("Gagal menyimpan log pesan ke DB:", err);
   }
 
-  // 2. Kirim Webhook ke n8n (Dinonaktifkan sesuai permintaan)
-  // Bot sekarang 100% 1-arah (Sistem Notifikasi). Tidak ada lagi auto-reply.
+  // Abaikan pesan grup (tidak diproses lebih lanjut)
+  if (isGroup) return;
+
+  // 2. Cek auto-reply dari database
+  try {
+    const result = await db.query(
+      "SELECT response FROM wa_auto_replies WHERE is_active = true AND $1 ILIKE CONCAT('%', keyword, '%') ORDER BY LENGTH(keyword) DESC LIMIT 1",
+      [text]
+    );
+    if (result.rows.length > 0) {
+      const reply = result.rows[0].response;
+      await simulateTyping(sock, sender, reply);
+      await sock.sendMessage(sender, { text: reply });
+      await db.query(
+        "INSERT INTO wa_message_logs (remote_jid, is_from_me, message_type, content, timestamp) VALUES ($1, $2, $3, $4, $5)",
+        [sender, true, "conversation", reply, Math.floor(Date.now() / 1000)]
+      );
+      return;
+    }
+  } catch (err) {
+    console.error("Gagal cek auto-reply:", err.message);
+  }
+
+  // 3. Kirim Webhook ke n8n + log
+  const webhookUrl = process.env.N8N_WEBHOOK_URL;
+  if (!webhookUrl) return; // Abaikan jika webhook url tidak diatur
+
+  const startTime = Date.now();
+  try {
+    const response = await axios.post(
+      webhookUrl,
+      {
+        sender,
+        message: text,
+        messageType,
+        timestamp: msg.messageTimestamp,
+      },
+      { timeout: 10000 }
+    );
+
+    await db.query(
+      `INSERT INTO wa_webhook_logs (remote_jid, message, message_type, status_code, response, duration_ms)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        sender,
+        text,
+        messageType,
+        response.status,
+        JSON.stringify(response.data),
+        Date.now() - startTime,
+      ]
+    );
+    console.log(`[Webhook] Dikirim ke n8n dari ${sender} (${response.status})`);
+  } catch (err) {
+    await db.query(
+      `INSERT INTO wa_webhook_logs (remote_jid, message, message_type, status_code, error, duration_ms)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        sender,
+        text,
+        messageType,
+        err.response?.status || 0,
+        err.message,
+        Date.now() - startTime,
+      ]
+    );
+    console.error("[Webhook] Gagal:", err.message);
+  }
 }
 
 module.exports = { handleMessage, simulateTyping };

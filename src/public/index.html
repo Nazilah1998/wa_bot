@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PTSP Bot — Dashboard</title>
-    <meta name="description" content="Panel Admin PTSP Bot — Sistem Pelayanan Terpadu Satu Pintu">
+    <title>Bot PTSP Kemenag Barito Utara</title>
+    <meta name="description" content="Panel Admin Bot PTSP Kemenag Barito Utara — Sistem Pelayanan Terpadu Satu Pintu">
+    <link rel="icon" href="/logo.kemenag.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -585,6 +587,116 @@
         }
 
         /* ═══════════════════════════════════════════════
+           CHAT UI (WhatsApp Web Style)
+        ═══════════════════════════════════════════════ */
+        .chat-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--wa-border);
+            transition: background 0.15s;
+        }
+        .chat-item:hover { background: rgba(134,150,160,0.05); }
+        .chat-item.active { background: rgba(134,150,160,0.1); }
+        
+        .chat-item-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--wa-accent-dark), var(--wa-accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        
+        .chat-item-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .chat-item-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        
+        .chat-item-name {
+            font-size: 15px;
+            color: var(--wa-text-primary);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .chat-item-time {
+            font-size: 11px;
+            color: var(--wa-text-muted);
+            flex-shrink: 0;
+        }
+        
+        .chat-item-msg {
+            font-size: 13px;
+            color: var(--wa-text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-bubble {
+            max-width: 75%;
+            padding: 6px 9px;
+            border-radius: 7.5px;
+            font-size: 13px;
+            line-height: 1.35;
+            color: var(--wa-text-primary);
+            position: relative;
+            box-shadow: 0 1px 0.5px rgba(11,20,26,.13);
+            display: inline-block;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .chat-bubble.in {
+            background: #202c33;
+            align-self: flex-start;
+            border-top-left-radius: 0;
+        }
+
+        .chat-bubble.out {
+            background: #005c4b;
+            align-self: flex-end;
+            border-top-right-radius: 0;
+        }
+
+        .chat-bubble-meta {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            margin-top: 4px;
+            margin-bottom: -4px;
+        }
+
+        .chat-bubble-time {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+        }
+        
+        .chat-bubble.in .chat-bubble-time {
+            color: var(--wa-text-muted);
+        }
+
+        /* ═══════════════════════════════════════════════
            QR CODE SECTION (WhatsApp "Link a Device" style)
         ═══════════════════════════════════════════════ */
         .qr-section {
@@ -987,6 +1099,9 @@
                 transition: transform 0.3s ease;
                 box-shadow: 4px 0 24px rgba(0,0,0,0.4);
             }
+            .mobile-back-btn {
+                display: none;
+            }
 
             .sidebar.open {
                 transform: translateX(0);
@@ -1061,6 +1176,29 @@
             .grid-2, .grid-3 {
                 grid-template-columns: 1fr;
             }
+
+            /* Responsive Chat Layout */
+            .chat-sidebar {
+                width: 100% !important;
+                border-right: none !important;
+                display: flex;
+            }
+            .chat-main {
+                display: none !important;
+                width: 100% !important;
+            }
+            #tab-pesan.chat-active .chat-sidebar {
+                display: none !important;
+            }
+            #tab-pesan.chat-active .chat-main {
+                display: flex !important;
+            }
+            .chat-header {
+                padding: 0 10px !important;
+            }
+            .mobile-back-btn {
+                display: flex !important;
+            }
         }
     </style>
 </head>
@@ -1074,12 +1212,12 @@
         <!-- Sidebar Header -->
         <div class="sidebar-header">
             <div class="sidebar-brand">
-                <div class="brand-avatar">
-                    <i class="fa-brands fa-whatsapp"></i>
+                <div class="brand-avatar" style="background: transparent;">
+                    <img src="/logo.kemenag.svg" alt="Logo Kemenag" style="width: 32px; height: 32px; object-fit: contain;">
                 </div>
-                <div class="brand-info">
-                    <h1>PTSP Bot</h1>
-                    <p>Pelayanan Terpadu</p>
+                <div class="brand">
+                    <h1>Bot PTSP</h1>
+                    <p>Kemenag Barito Utara</p>
                 </div>
             </div>
             <div class="sidebar-header-actions">
@@ -1130,6 +1268,17 @@
                     <div class="nav-item-label">Kontak</div>
                     <div class="nav-item-desc">Daftar pemohon</div>
                 </div>
+            </button>
+
+
+            <button class="nav-item" id="nav-auto-reply" onclick="switchTab('auto-reply')">
+              <div class="nav-item-icon-wrap">
+                <i class="fa-solid fa-robot"></i>
+              </div>
+              <div class="nav-item-text">
+                <div class="nav-item-label">Auto Reply</div>
+                <div class="nav-item-desc">Kata kunci otomatis</div>
+              </div>
             </button>
 
             <div class="nav-divider"></div>
@@ -1237,6 +1386,61 @@
             </div>
 
             <div class="grid-2 mb-4">
+                <div class="card mb-4">
+                  <div class="card-header">
+                    <div class="card-header-title">
+                      <div class="card-header-icon blue">
+                        <i class="fa-solid fa-chart-bar"></i>
+                      </div>
+                      <div>
+                        <div class="card-title">Aktivitas 7 Hari Terakhir</div>
+                        <div class="card-subtitle">Jumlah pesan masuk & keluar per hari</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="chart-canvas" height="200" style="max-height:250px;"></canvas>
+                  </div>
+                </div>
+                
+                <div class="card mb-4">
+                  <div class="card-header">
+                    <div class="card-header-title">
+                      <div class="card-header-icon yellow">
+                        <i class="fa-solid fa-ranking-star"></i>
+                      </div>
+                      <div>
+                        <div class="card-title">Kontak Teraktif</div>
+                        <div class="card-subtitle">10 kontak dengan pesan terbanyak</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="info-list" id="top-contacts-list">
+                    <div style="padding:20px;text-align:center;color:var(--wa-text-muted);font-size:13px;">
+                      <i class="fa-solid fa-circle-notch fa-spin"></i> Memuat...
+                    </div>
+                  </div>
+                </div>
+            </div>
+
+            <div class="grid-2 mb-4">
+                <div class="card mb-4">
+                  <div class="card-header">
+                    <div class="card-header-title">
+                      <div class="card-header-icon green"><i class="fa-solid fa-bell"></i></div>
+                      <div>
+                        <div class="card-title">Aktivitas Terbaru</div>
+                        <div class="card-subtitle">Pesan masuk real-time</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="timeline-list" style="max-height:300px;overflow-y:auto;padding:8px 0;">
+                    <div style="padding:20px;text-align:center;color:var(--wa-text-muted);font-size:13px;" class="empty-timeline">
+                      Belum ada aktivitas
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Status Koneksi WA -->
                 <div class="card">
                     <div class="card-header">
@@ -1335,40 +1539,133 @@
                             </div>
                             <span class="wa-badge info">v1.0</span>
                         </div>
+                        <button class="btn btn-ghost" onclick="testWebhook(event)" style="font-size:12px;margin-top:4px;">
+                          <i class="fa-solid fa-plug"></i> Test Webhook n8n
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ── TAB: LOG PESAN ── -->
-        <div class="content-area" id="tab-pesan" style="padding:0; display:none; flex-direction:column; overflow:hidden;">
-            <div class="card" style="margin:16px; flex:1; display:flex; flex-direction:column; overflow:hidden; border-radius:12px;">
+        <!-- ── TAB: LOG PESAN (CHAT VIEW) ── -->
+        <div class="content-area" id="tab-pesan" style="padding:0; display:none; flex-direction:row; overflow:hidden;">
+            
+            <!-- Chat Sidebar -->
+            <div class="chat-sidebar" style="width:320px; border-right:1px solid var(--wa-border); display:flex; flex-direction:column; background:var(--wa-card);">
                 <div class="card-header" style="flex-shrink:0;">
                     <div class="card-header-title">
                         <div class="card-header-icon green"><i class="fa-solid fa-comments"></i></div>
                         <div>
-                            <div class="card-title">Log Aktivitas Pesan</div>
-                            <div class="card-subtitle">100 pesan terakhir dari pemohon</div>
+                            <div class="card-title">Daftar Obrolan</div>
                         </div>
                     </div>
-                    <button class="btn btn-ghost" onclick="fetchMessages()" style="font-size:12px;">
-                        <i class="fa-solid fa-rotate"></i> Refresh
-                    </button>
+                    <div style="display:flex; gap:4px;">
+                        <button class="btn btn-ghost" onclick="showNewChatForm()" style="font-size:12px; padding:6px; color:var(--wa-accent);" title="Mulai Obrolan Baru">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                        <button class="btn btn-ghost" onclick="deleteAllChats()" style="font-size:12px; padding:6px; color:#ff4d4f;" title="Kosongkan Semua Obrolan">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                        <button class="btn btn-ghost" onclick="fetchChats()" style="font-size:12px; padding:6px;" title="Segarkan Obrolan">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
                 </div>
-                <div style="overflow:auto; flex:1;">
-                    <table class="wa-table">
-                        <thead>
-                            <tr>
-                                <th>Kontak</th>
-                                <th>Waktu</th>
-                                <th>Konteks</th>
-                                <th>Arah</th>
-                            </tr>
-                        </thead>
-                        <tbody id="msg-tbody">
-                            <tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin"></i><p>Memuat data...</p></div></td></tr>
-                        </tbody>
-                    </table>
+                <div class="sidebar-search">
+                    <div class="search-wrapper">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" class="search-input" id="chat-search" placeholder="Cari kontak..." oninput="filterChats(this.value)" />
+                    </div>
+                </div>
+                <div class="chat-list" id="chat-list" style="flex:1; overflow-y:auto;">
+                    <div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin"></i><p>Memuat obrolan...</p></div>
+                </div>
+            </div>
+
+            <!-- Chat Main Area -->
+            <div class="chat-main" id="chat-main" style="flex:1; display:flex; flex-direction:column; background-color:#0b141a; position:relative;">
+                <div class="empty-state" id="chat-placeholder" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+                    <div style="font-size:56px; color:var(--wa-text-muted); margin-bottom:16px; opacity:0.5;"><i class="fa-brands fa-whatsapp"></i></div>
+                    <p style="font-size:15px; color:var(--wa-text-muted);">Pilih chat untuk melihat riwayat pesan</p>
+                </div>
+
+                <div id="chat-container" style="display:none; flex:1; flex-direction:column; overflow:hidden; height:100%;">
+                    <!-- Chat Header -->
+                    <div class="chat-header" style="height:64px; padding:0 20px; display:flex; align-items:center; background:var(--wa-card); border-bottom:1px solid var(--wa-border); flex-shrink:0;">
+                        <button class="mobile-back-btn btn btn-ghost" onclick="closeChatMobile()" style="margin-right:8px; padding:8px; color:var(--wa-text-muted);"><i class="fa-solid fa-arrow-left"></i></button>
+                        <div class="chat-item-avatar" id="chat-header-avatar" style="width:40px; height:40px; font-size:16px; margin-right:12px;">?</div>
+                        <div>
+                            <div class="chat-item-name" id="chat-header-name" style="font-size:16px;">-</div>
+                            <div style="font-size:12px; color:var(--wa-text-muted);" id="chat-header-jid">-</div>
+                        </div>
+                        <div style="margin-left:auto; display:flex; gap:8px;">
+                            <button class="btn btn-ghost" onclick="deleteChat(currentActiveJid)" style="font-size:16px; color:#ff4d4f; padding:8px;" title="Hapus Obrolan">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                            <button class="btn btn-ghost" onclick="fetchChatHistory(currentActiveJid)" style="font-size:16px; padding:8px;" title="Segarkan Obrolan">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages Area -->
+                    <div class="chat-messages" id="chat-messages" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:4px;">
+                        <!-- bubbles go here -->
+                    </div>
+
+                    <!-- Inline Chat Input -->
+                    <div class="chat-input-area" style="padding:10px 20px; background:var(--wa-card); border-top:1px solid var(--wa-border); flex-shrink:0;">
+                       <form id="inline-send-form" style="display:flex; gap:10px; align-items:flex-end;">
+                          <div style="position:relative;">
+                             <button type="button" class="btn btn-ghost" title="Pesan Cepat" onclick="toggleInlineQuickReplies()" style="padding:10px; height:44px;"><i class="fa-solid fa-bolt" style="color:var(--wa-yellow)"></i></button>
+                             <div id="inline-quick-replies" style="display:none; position:absolute; bottom:50px; left:0; width:300px; background:var(--wa-card); border:1px solid var(--wa-border); border-radius:12px; padding:8px; box-shadow:0 8px 24px rgba(0,0,0,0.5); z-index:100;">
+                                <div style="font-size:11px; color:var(--wa-text-muted); margin-bottom:8px; padding:0 8px;">Template Pesan Cepat:</div>
+                                <button type="button" class="btn btn-ghost" style="justify-content:flex-start;width:100%;font-size:12px;padding:6px 8px;" onclick="useInlineTemplate('Permohonan Anda sedang diproses. Mohon tunggu informasi selanjutnya.')"><i class="fa-solid fa-file"></i> Permohonan diproses</button>
+                                <button type="button" class="btn btn-ghost" style="justify-content:flex-start;width:100%;font-size:12px;padding:6px 8px;" onclick="useInlineTemplate('Dokumen permohonan Anda sudah selesai. Silakan datang ke kantor untuk mengambil.')"><i class="fa-solid fa-circle-check"></i> Dokumen selesai</button>
+                                <button type="button" class="btn btn-ghost" style="justify-content:flex-start;width:100%;font-size:12px;padding:6px 8px;" onclick="useInlineTemplate('Mohon maaf, terjadi kendala teknis. Tim kami akan menghubungi Anda segera.')"><i class="fa-solid fa-triangle-exclamation"></i> Kendala teknis</button>
+                                <button type="button" class="btn btn-ghost" style="justify-content:flex-start;width:100%;font-size:12px;padding:6px 8px;" onclick="useInlineTemplate('Kami membutuhkan dokumen tambahan: [sebutkan]. Mohon kirimkan melalui WhatsApp ini.')"><i class="fa-solid fa-paperclip"></i> Minta dokumen</button>
+                             </div>
+                          </div>
+                          <textarea id="inline-send-text" class="search-input" placeholder="Ketik pesan..." style="flex:1; padding:12px 14px; border-radius:8px; height:44px; min-height:44px; max-height:120px; resize:none; font-family:inherit;" required onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); document.getElementById('inline-btn-send').click();}"></textarea>
+                          <button type="submit" class="btn btn-primary" id="inline-btn-send" style="padding:0; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                             <i class="fa-solid fa-paper-plane"></i>
+                          </button>
+                       </form>
+                    </div>
+                </div>
+
+                <!-- New Chat Form Container (Hidden by default) -->
+                <div id="new-chat-container" style="display:none; flex:1; overflow-y:auto; padding:20px;">
+                    <div style="max-width:600px; margin:0 auto;">
+                        <button class="btn btn-ghost" onclick="closeNewChatForm()" style="margin-bottom:16px; color:var(--wa-text-muted);"><i class="fa-solid fa-arrow-left"></i> Kembali</button>
+                        <div class="card mb-4">
+                          <div class="card-header">
+                            <div class="card-header-title">
+                              <div class="card-header-icon green"><i class="fa-solid fa-paper-plane"></i></div>
+                              <div>
+                                <div class="card-title">Mulai Obrolan Baru</div>
+                                <div class="card-subtitle">Kirim pesan ke nomor baru</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="card-body">
+                            <form id="new-chat-form" style="display:flex;flex-direction:column;gap:14px;">
+                              <div>
+                                <label style="display:block;font-size:12px;color:var(--wa-text-muted);margin-bottom:6px;">Nomor WhatsApp <span style="color:var(--wa-red)">*</span></label>
+                                <input type="text" id="new-chat-to" class="search-input" placeholder="Contoh: 08123456789" style="padding:10px 14px;border-radius:8px;width:100%;" required />
+                              </div>
+                              <div>
+                                <label style="display:block;font-size:12px;color:var(--wa-text-muted);margin-bottom:6px;">Pesan <span style="color:var(--wa-red)">*</span></label>
+                                <textarea id="new-chat-text" class="search-input" placeholder="Ketik pesan..." style="padding:10px 14px;border-radius:8px;width:100%;min-height:100px;resize:vertical;font-family:inherit;" required></textarea>
+                              </div>
+                              <div style="display:flex;gap:10px;align-items:center;">
+                                <button type="submit" class="btn btn-primary" id="btn-new-chat-send" style="padding:10px 24px;"><i class="fa-solid fa-paper-plane"></i> Kirim</button>
+                                <div id="new-chat-send-status" style="font-size:13px;color:var(--wa-text-muted);display:none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Mengirim...</div>
+                              </div>
+                            </form>
+                          </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1406,6 +1703,104 @@
         </div>
 
     </main>
+
+
+        <!-- ── TAB: AUTO-REPLY ── -->
+        <div class="content-area" id="tab-auto-reply" style="padding:0;display:none;flex-direction:column;overflow:hidden;">
+          <div class="card" style="margin:16px;flex:1;display:flex;flex-direction:column;overflow:hidden;border-radius:12px;">
+            <div class="card-header" style="flex-shrink:0;">
+              <div class="card-header-title">
+                <div class="card-header-icon green">
+                  <i class="fa-solid fa-robot"></i>
+                </div>
+                <div>
+                  <div class="card-title">Manajemen Auto Reply</div>
+                  <div class="card-subtitle">Respons otomatis berdasarkan kata kunci</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-subtle" id="btn-sync" onclick="syncAutoReplyPTSP()" style="font-size:12px;color:var(--wa-blue);border:1px solid rgba(83,189,235,0.2);">
+                  <i class="fa-solid fa-rotate"></i> Sinkronkan Kemenag
+                </button>
+                <button class="btn btn-primary" onclick="showAddAutoReply()" style="font-size:12px;">
+                  <i class="fa-solid fa-plus"></i> Tambah
+                </button>
+              </div>
+            </div>
+            <div style="overflow:auto;flex:1;">
+              <table class="wa-table">
+                <thead>
+                  <tr>
+                    <th>Kata Kunci</th>
+                    <th>Response</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="ar-tbody">
+                  <tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin"></i><p>Memuat...</p></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Modal Detail Pesan -->
+<div id="msg-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--wa-card);border-radius:16px;border:1px solid var(--wa-border);max-width:560px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 32px 64px rgba(0,0,0,0.5);">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--wa-border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--wa-accent-dark),var(--wa-accent));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;" id="modal-avatar">?</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--wa-text-primary);" id="modal-name">-</div>
+          <div style="font-size:11px;color:var(--wa-text-muted);" id="modal-jid">-</div>
+        </div>
+      </div>
+      <button onclick="closeModal()" style="background:none;border:none;color:var(--wa-icon);font-size:20px;cursor:pointer;padding:4px;">&times;</button>
+    </div>
+    <div style="padding:20px;">
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <span id="modal-direction" class="dir-badge out">-</span>
+        <span id="modal-intent" class="intent-badge default">-</span>
+        <span id="modal-type" style="font-size:11px;color:var(--wa-text-muted);padding:3px 8px;background:var(--wa-input);border-radius:6px;">-</span>
+      </div>
+      <div style="font-size:12px;color:var(--wa-text-muted);margin-bottom:8px;">Waktu</div>
+      <div style="font-size:13px;color:var(--wa-text-secondary);margin-bottom:16px;" id="modal-time">-</div>
+      <div style="font-size:12px;color:var(--wa-text-muted);margin-bottom:8px;">Isi Pesan</div>
+      <div style="background:var(--wa-input);border-radius:10px;padding:16px;font-size:14px;color:var(--wa-text-primary);line-height:1.6;white-space:pre-wrap;word-break:break-word;" id="modal-content">-</div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--wa-border);display:flex;justify-content:flex-end;">
+      <button class="btn btn-subtle" onclick="closeModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal tambah/edit auto-reply -->
+<div id="ar-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--wa-card);border-radius:16px;border:1px solid var(--wa-border);max-width:480px;width:100%;padding:24px;">
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:16px;" id="ar-modal-title">Tambah Auto Reply</h3>
+    <form id="ar-form" style="display:flex;flex-direction:column;gap:12px;">
+      <input type="hidden" id="ar-id" />
+      <div>
+        <label style="font-size:12px;color:var(--wa-text-muted);display:block;margin-bottom:4px;">Kata Kunci</label>
+        <input type="text" id="ar-keyword" class="search-input" style="width:100%;padding:10px 14px;" placeholder="Contoh: halo, info, status" required />
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--wa-text-muted);display:block;margin-bottom:4px;">Response</label>
+        <textarea id="ar-response" class="search-input" style="width:100%;padding:10px 14px;min-height:80px;font-family:inherit;" required></textarea>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--wa-text-secondary);cursor:pointer;">
+        <input type="checkbox" id="ar-active" checked /> Aktif
+      </label>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+        <button type="button" class="btn btn-subtle" onclick="closeArModal()">Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -1464,7 +1859,7 @@
         if (tabEl) {
             tabEl.classList.add('active');
             // For table tabs use flex
-            if (tab === 'pesan' || tab === 'kontak') {
+            if (tab === 'pesan' || tab === 'kontak' || tab === 'auto-reply') {
                 tabEl.style.display = 'flex';
             } else {
                 tabEl.style.display = 'block';
@@ -1476,16 +1871,20 @@
         if (navEl) navEl.classList.add('active');
 
         // Page title
-        const titles = { beranda: 'Beranda Status', pesan: 'Log Aktivitas Pesan', kontak: 'Buku Kontak' };
+        const titles = { beranda: 'Beranda Status', pesan: 'Log Aktivitas Pesan', kontak: 'Buku Kontak', kirim: 'Kirim Pesan', 'auto-reply': 'Manajemen Auto Reply' };
         document.getElementById('page-title').textContent = titles[tab] || tab;
 
-        if (tab === 'pesan')  fetchMessages();
+        if (tab === 'pesan')  { fetchChats(); }
         if (tab === 'kontak') fetchContacts();
+        if (tab === 'beranda') fetchDashboardWidgets();
+        if (tab === 'auto-reply') fetchAutoReplies();
     }
 
     function refreshCurrentTab() {
-        if (currentTab === 'pesan')  fetchMessages();
+        if (currentTab === 'pesan')  fetchChats();
         if (currentTab === 'kontak') fetchContacts();
+        if (currentTab === 'beranda') fetchDashboardWidgets();
+        if (currentTab === 'auto-reply') fetchAutoReplies();
     }
 
     function filterNav(q) {
@@ -1515,7 +1914,13 @@
         // Reset display
         stL.style.display = stQ.style.display = stC.style.display = 'none';
 
-        if (state === 'open') {
+        if (state === 'disconnected') {
+            stL.style.display = 'flex';
+            dot.className = 'status-dot offline';
+            slabel.textContent = 'Terputus';
+            ssub.textContent = 'Sesi WA dihapus dari HP';
+            if (statLabel) statLabel.textContent = 'Offline';
+        } else if (state === 'open') {
             stC.style.display = 'flex';
             dot.className = 'status-dot online';
             slabel.textContent = 'Bot Aktif';
@@ -1538,17 +1943,18 @@
     }
 
     socket.on('status', (data) => {
-        setWAStatus(data.status === 'open' ? 'open' : 'connecting');
+        setWAStatus(data.status);
     });
 
     socket.on('qr', (qrSrc) => {
         setWAStatus('qr', qrSrc);
     });
 
-    socket.on('disconnect', () => setWAStatus('disconnected'));
-
     socket.on('new_message', () => {
-        if (currentTab === 'pesan') fetchMessages();
+        if (currentTab === 'pesan') {
+            fetchChats();
+            if (currentActiveJid) fetchChatHistory(currentActiveJid);
+        }
         // Update badge
         fetchStats();
     });
@@ -1577,46 +1983,185 @@
         return '<span class="intent-badge default">Pesan Biasa</span>';
     }
 
-    async function fetchMessages() {
-        const tbody = document.getElementById('msg-tbody');
-        tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="wa-spinner" style="width:28px;height:28px;border-width:2px;"></div></div></td></tr>';
+    let msgSearchQuery = '';
+    let currentActiveJid = null;
+
+    function filterChats(val) {
+        msgSearchQuery = val.toLowerCase();
+        fetchChats();
+    }
+
+    async function fetchChats() {
+        const listEl = document.getElementById('chat-list');
+        listEl.innerHTML = '<div class="empty-state"><div class="wa-spinner" style="width:28px;height:28px;border-width:2px;"></div></div>';
         try {
-            const res  = await fetch('/api/messages');
+            const res = await fetch('/api/chats');
             const data = await res.json();
-            if (!data.success || data.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fa-regular fa-comments"></i><p>Belum ada pesan terekam</p></div></td></tr>';
+            if(!data.success) throw new Error(data.error);
+
+            let chats = data.data;
+            if(msgSearchQuery) {
+                chats = chats.filter(c => (c.name || '').toLowerCase().includes(msgSearchQuery) || (c.remote_jid || '').includes(msgSearchQuery));
+            }
+
+            if(chats.length === 0) {
+                listEl.innerHTML = '<div class="empty-state"><p>Tidak ada obrolan</p></div>';
                 return;
             }
-            const countEl = document.getElementById('msg-count');
-            countEl.textContent = data.data.length;
-            countEl.style.display = data.data.length > 0 ? '' : 'none';
-            document.getElementById('stat-msg-count').textContent = data.data.length;
 
-            tbody.innerHTML = data.data.map(log => {
-                const jid = log.remote_jid.replace('@s.whatsapp.net','').replace('@g.us','');
-                const dir = log.is_from_me
-                    ? '<span class="dir-badge out"><i class="fa-solid fa-arrow-up-right" style="font-size:9px;"></i>Keluar</span>'
-                    : '<span class="dir-badge in"><i class="fa-solid fa-arrow-down-left" style="font-size:9px;"></i>Masuk</span>';
+            listEl.innerHTML = chats.map(c => {
+                const jid = c.remote_jid.replace('@s.whatsapp.net', '');
+                const name = c.name || '+' + jid;
+                const time = c.last_time ? formatTime(c.last_time) : '';
+                const msg = (c.last_message || 'Tidak ada pesan').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const prefix = c.last_is_from_me ? '<i class="fa-solid fa-check" style="font-size:10px; margin-right:4px;"></i>' : '';
+                
                 return `
-                    <tr>
-                        <td>
-                            <div class="contact-row">
-                                <div class="contact-avatar">${getInitials(jid)}</div>
-                                <div>
-                                    <div class="contact-name">${jid}</div>
-                                    <div class="contact-number">${log.message_type || 'text'}</div>
-                                </div>
+                    <div class="chat-item ${currentActiveJid === c.remote_jid ? 'active' : ''}" onclick="loadChat('${c.remote_jid}', '${name.replace(/'/g, "\\'")}')" id="chat-item-${jid}">
+                        <div class="chat-item-avatar">${getInitials(name)}</div>
+                        <div class="chat-item-content">
+                            <div class="chat-item-top">
+                                <span class="chat-item-name">${name}</span>
+                                <span class="chat-item-time">${time}</span>
                             </div>
-                        </td>
-                        <td style="white-space:nowrap;color:var(--wa-text-muted);">${formatTime(log.timestamp)}</td>
-                        <td>${getIntent(log.content)}</td>
-                        <td>${dir}</td>
-                    </tr>
+                            <span class="chat-item-msg">${prefix}${msg}</span>
+                        </div>
+                    </div>
                 `;
             }).join('');
-        } catch (e) {
-            tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Gagal memuat data</p></div></td></tr>';
+
+        } catch(e) {
+            listEl.innerHTML = '<div class="empty-state"><p>Gagal memuat</p></div>';
         }
+    }
+
+    function formatChatTime(ts) {
+        const d = new Date(ts * 1000);
+        return d.toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function fetchChatHistory(jid) {
+        if(!jid) return;
+        const msgContainer = document.getElementById('chat-messages');
+        try {
+            const res = await fetch('/api/chats/' + jid + '/messages');
+            const data = await res.json();
+            if(!data.success) return;
+
+            if(data.data.length === 0) {
+                msgContainer.innerHTML = '<div class="empty-state"><p>Belum ada pesan</p></div>';
+                return;
+            }
+
+            msgContainer.innerHTML = data.data.map(m => {
+                const dir = m.is_from_me ? 'out' : 'in';
+                const time = formatChatTime(m.timestamp);
+                let content = (m.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                
+                return `
+                    <div class="chat-bubble ${dir}">
+                        ${content}
+                        <div class="chat-bubble-meta">
+                            <span class="chat-bubble-time">${time}</span>
+                            ${dir === 'out' ? '<i class="fa-solid fa-check-double" style="font-size:10px; color:rgba(255,255,255,0.8);"></i>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            setTimeout(() => {
+                msgContainer.scrollTop = msgContainer.scrollHeight;
+            }, 50);
+        } catch(e) {}
+    }
+
+    async function deleteChat(jid) {
+        if(!jid) return;
+        if(!confirm('Anda yakin ingin menghapus obrolan ini secara permanen? Chat juga akan diusahakan terhapus di HP Anda.')) return;
+        
+        try {
+            const res = await fetch('/api/chats/' + encodeURIComponent(jid), { method: 'DELETE' });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('chat-container').style.display = 'none';
+                document.getElementById('chat-placeholder').style.display = 'flex';
+                currentActiveJid = null;
+                fetchChats();
+            } else {
+                alert('Gagal menghapus obrolan: ' + data.error);
+            }
+        } catch(e) {
+            alert('Terjadi kesalahan jaringan.');
+        }
+    }
+
+    async function deleteAllChats() {
+        if(!confirm('PERINGATAN: Anda yakin ingin menghapus SEMUA obrolan secara permanen? Chat juga akan diusahakan terhapus massal di HP Anda.')) return;
+        
+        try {
+            const res = await fetch('/api/chats', { method: 'DELETE' });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('chat-container').style.display = 'none';
+                document.getElementById('chat-placeholder').style.display = 'flex';
+                currentActiveJid = null;
+                fetchChats();
+            } else {
+                alert('Gagal menghapus obrolan: ' + data.error);
+            }
+        } catch(e) {
+            alert('Terjadi kesalahan jaringan.');
+        }
+    }
+
+    function loadChat(jid, name) {
+        currentActiveJid = jid;
+        
+        document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+        const activeItem = document.getElementById('chat-item-' + jid.replace('@s.whatsapp.net', ''));
+        if(activeItem) activeItem.classList.add('active');
+
+        document.getElementById('chat-placeholder').style.display = 'none';
+        document.getElementById('chat-container').style.display = 'flex';
+        document.getElementById('new-chat-container').style.display = 'none';
+        document.getElementById('tab-pesan').classList.add('chat-active');
+
+        document.getElementById('chat-header-avatar').textContent = getInitials(name);
+        document.getElementById('chat-header-name').textContent = name;
+        document.getElementById('chat-header-jid').textContent = '+' + jid.replace('@s.whatsapp.net', '');
+
+        document.getElementById('chat-messages').innerHTML = '<div class="empty-state"><div class="wa-spinner" style="width:28px;height:28px;border-width:2px;"></div></div>';
+        fetchChatHistory(jid);
+    }
+
+    function closeChatMobile() {
+        document.getElementById('tab-pesan').classList.remove('chat-active');
+        currentActiveJid = null;
+        document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+    }
+
+    function openMsgModal(tr) {
+        const log = JSON.parse(tr.getAttribute('data-log'));
+        const jid = log.remote_jid.replace('@s.whatsapp.net','').replace('@g.us','');
+        const name = log.contact_name || jid;
+        document.getElementById('modal-avatar').textContent = getInitials(name);
+        document.getElementById('modal-name').textContent = name;
+        document.getElementById('modal-jid').textContent = '+' + jid;
+        
+        const isMe = log.is_from_me;
+        document.getElementById('modal-direction').className = 'dir-badge ' + (isMe ? 'out' : 'in');
+        document.getElementById('modal-direction').innerHTML = isMe ? '<i class="fa-solid fa-arrow-up-right" style="font-size:9px;"></i>Keluar' : '<i class="fa-solid fa-arrow-down-left" style="font-size:9px;"></i>Masuk';
+        
+        document.getElementById('modal-intent').innerHTML = getIntent(log.content);
+        document.getElementById('modal-type').textContent = log.message_type || 'text';
+        document.getElementById('modal-time').textContent = formatTime(log.timestamp);
+        document.getElementById('modal-content').textContent = log.content || '';
+        
+        document.getElementById('msg-modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('msg-modal').style.display = 'none';
     }
 
     async function fetchContacts() {
@@ -1657,17 +2202,362 @@
     async function fetchStats() {
         try {
             const [mRes, cRes] = await Promise.all([
-                _origFetch('/api/messages'),
+                _origFetch('/api/messages?limit=1'),
                 _origFetch('/api/contacts')
             ]);
             const [mData, cData] = await Promise.all([mRes.json(), cRes.json()]);
-            if (mData.success) document.getElementById('stat-msg-count').textContent = mData.data.length;
+            if (mData.success && mData.pagination) {
+                document.getElementById('stat-msg-count').textContent = mData.pagination.total;
+                // Update badge juga
+                const countEl = document.getElementById('msg-count');
+                countEl.textContent = mData.pagination.total;
+                countEl.style.display = mData.pagination.total > 0 ? '' : 'none';
+            }
             if (cData.success) document.getElementById('stat-contact-count').textContent = cData.data.length;
         } catch(e) {}
     }
 
     // Load stats on startup
     fetchStats();
+    fetchDashboardWidgets();
+
+    // ═══════════════════════════════════════════════
+    // DASHBOARD WIDGETS
+    // ═══════════════════════════════════════════════
+    let msgChart = null;
+    async function fetchDashboardWidgets() {
+        // Timeline
+        try {
+            const tlRes = await fetch('/api/messages?limit=10');
+            const tlData = await tlRes.json();
+            const tlList = document.getElementById('timeline-list');
+            if(tlData.success && tlData.data.length > 0) {
+                tlList.innerHTML = tlData.data.map(log => {
+                    const jid = log.remote_jid.replace('@s.whatsapp.net','');
+                    const name = log.contact_name || jid;
+                    const isMe = log.is_from_me;
+                    const icon = isMe ? '<i class="fa-solid fa-arrow-up-right" style="color:var(--wa-accent)"></i>' : '<i class="fa-solid fa-arrow-down-left" style="color:var(--wa-blue)"></i>';
+                    const snippet = (log.content||'').substring(0, 30) + ((log.content||'').length > 30 ? '...' : '');
+                    return `
+                        <div style="display:flex;gap:12px;padding:8px 16px;border-bottom:1px solid var(--wa-border);">
+                            <div style="width:32px;height:32px;border-radius:50%;background:var(--wa-input);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${icon}</div>
+                            <div style="flex:1;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="font-size:13px;font-weight:600;color:var(--wa-text-primary);">${name}</span>
+                                    <span style="font-size:11px;color:var(--wa-text-muted);">${formatTime(log.timestamp)}</span>
+                                </div>
+                                <div style="font-size:12px;color:var(--wa-text-secondary);margin-top:2px;">${snippet}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        } catch(e) {}
+
+        // Top Contacts
+        try {
+            const tcRes = await fetch('/api/contacts/top');
+            const tcData = await tcRes.json();
+            const tcList = document.getElementById('top-contacts-list');
+            if(tcData.success && tcData.data.length > 0) {
+                tcList.innerHTML = tcData.data.map(c => `
+                    <div class="info-item" style="padding:10px 20px;">
+                        <div class="info-item-icon" style="background:rgba(255,176,46,0.12);color:var(--wa-yellow);">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div class="info-item-text">
+                            <div class="info-item-title">${c.name || c.remote_jid.replace('@s.whatsapp.net','')}</div>
+                            <div class="info-item-desc">+${c.remote_jid.replace('@s.whatsapp.net','')}</div>
+                        </div>
+                        <span class="wa-badge warning">${c.message_count} Pesan</span>
+                    </div>
+                `).join('');
+            } else {
+                tcList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--wa-text-muted);font-size:13px;">Belum ada data</div>';
+            }
+        } catch(e) {}
+
+        // Chart
+        try {
+            const chRes = await fetch('/api/messages/chart');
+            const chData = await chRes.json();
+            if(chData.success && document.getElementById('chart-canvas')) {
+                const ctx = document.getElementById('chart-canvas').getContext('2d');
+                if(msgChart) msgChart.destroy();
+                msgChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chData.data.map(d => d.date),
+                        datasets: [
+                            { label: 'Masuk', data: chData.data.map(d => d.inbound), borderColor: '#53bdeb', backgroundColor: 'rgba(83,189,235,0.1)', fill: true, tension: 0.3 },
+                            { label: 'Keluar', data: chData.data.map(d => d.outbound), borderColor: '#00a884', backgroundColor: 'rgba(0,168,132,0.1)', fill: true, tension: 0.3 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#8696a0' } }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#8696a0' }, grid: { color: 'rgba(134,150,160,0.1)' } },
+                            y: { ticks: { color: '#8696a0' }, grid: { color: 'rgba(134,150,160,0.1)' } }
+                        }
+                    }
+                });
+            }
+        } catch(e) {}
+    }
+
+    // ═══════════════════════════════════════════════
+    // KIRIM PESAN & NEW CHAT UI
+    // ═══════════════════════════════════════════════
+    function showNewChatForm() {
+        document.getElementById('chat-placeholder').style.display = 'none';
+        document.getElementById('chat-container').style.display = 'none';
+        document.getElementById('new-chat-container').style.display = 'flex';
+        document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+        currentActiveJid = null;
+        document.getElementById('tab-pesan').classList.add('chat-active');
+    }
+
+    function closeNewChatForm() {
+        document.getElementById('new-chat-container').style.display = 'none';
+        document.getElementById('chat-placeholder').style.display = 'flex';
+        document.getElementById('tab-pesan').classList.remove('chat-active');
+    }
+
+    // -- Inline Quick Replies --
+    function toggleInlineQuickReplies() {
+        const qr = document.getElementById('inline-quick-replies');
+        qr.style.display = qr.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function useInlineTemplate(text) {
+        const input = document.getElementById('inline-send-text');
+        input.value = text;
+        toggleInlineQuickReplies();
+        input.focus();
+    }
+
+    // -- Inline Send Chat --
+    const inlineSendForm = document.getElementById('inline-send-form');
+    if(inlineSendForm) {
+        inlineSendForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('inline-btn-send');
+            const input = document.getElementById('inline-send-text');
+            const text = input.value.trim();
+            if(!text || !currentActiveJid) return;
+            
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: currentActiveJid, text: text })
+                });
+                const result = await res.json();
+                if(result.success) {
+                    input.value = '';
+                    fetchChatHistory(currentActiveJid);
+                    fetchChats(); // Refresh left sidebar to show latest msg
+                } else {
+                    alert('Gagal mengirim pesan: ' + (result.message || result.error || 'Terjadi kesalahan'));
+                }
+            } catch(e) {
+                alert('Terjadi kesalahan jaringan.');
+            }
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+            btn.disabled = false;
+        });
+    }
+
+    // -- New Chat Form --
+    const newChatForm = document.getElementById('new-chat-form');
+    if(newChatForm) {
+        newChatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-new-chat-send');
+            const status = document.getElementById('new-chat-send-status');
+            const toInput = document.getElementById('new-chat-to');
+            const textInput = document.getElementById('new-chat-text');
+            
+            btn.style.display = 'none';
+            status.style.display = 'flex';
+            
+            try {
+                const res = await fetch('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: toInput.value.trim(), text: textInput.value.trim() })
+                });
+                const result = await res.json();
+                if(result.success) {
+                    alert('Pesan berhasil dikirim!');
+                    toInput.value = '';
+                    textInput.value = '';
+                    fetchChats(); // Refresh left sidebar
+                    closeNewChatForm(); // Go back to placeholder
+                } else {
+                    alert('Gagal mengirim pesan: ' + (result.message || result.error || 'Terjadi kesalahan'));
+                }
+            } catch(e) {
+                alert('Terjadi kesalahan jaringan.');
+            }
+            btn.style.display = 'inline-flex';
+            status.style.display = 'none';
+        });
+    }
+
+    // ═══════════════════════════════════════════════
+    // AUTO REPLY
+    // ═══════════════════════════════════════════════
+    async function fetchAutoReplies() {
+        const tbody = document.getElementById('ar-tbody');
+        tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="wa-spinner" style="width:28px;height:28px;border-width:2px;"></div></div></td></tr>';
+        try {
+            const res = await fetch('/api/auto-replies');
+            const data = await res.json();
+            if(!data.success || data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-robot"></i><p>Belum ada auto-reply diatur</p></div></td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.data.map(ar => {
+                const statusHtml = ar.is_active ? '<span class="wa-badge success">Aktif</span>' : '<span class="wa-badge error">Nonaktif</span>';
+                const arJson = JSON.stringify(ar).replace(/"/g, '&quot;');
+                return `
+                    <tr>
+                        <td style="font-weight:600;color:var(--wa-text-primary);">${ar.keyword}</td>
+                        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ar.response}</td>
+                        <td>${statusHtml}</td>
+                        <td>
+                            <button class="btn btn-subtle" style="padding:4px 8px;font-size:11px;" onclick="editAutoReply(this)" data-ar="${arJson}"><i class="fa-solid fa-pen"></i></button>
+                            <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteAutoReply(${ar.id})"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch(e) {
+            tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Gagal memuat auto-reply</p></div></td></tr>';
+        }
+    }
+
+    function showAddAutoReply() {
+        document.getElementById('ar-id').value = '';
+        document.getElementById('ar-keyword').value = '';
+        document.getElementById('ar-response').value = '';
+        document.getElementById('ar-active').checked = true;
+        document.getElementById('ar-modal-title').textContent = 'Tambah Auto Reply';
+        document.getElementById('ar-modal').style.display = 'flex';
+    }
+
+    function editAutoReply(btn) {
+        const ar = JSON.parse(btn.getAttribute('data-ar'));
+        document.getElementById('ar-id').value = ar.id;
+        document.getElementById('ar-keyword').value = ar.keyword;
+        document.getElementById('ar-response').value = ar.response;
+        document.getElementById('ar-active').checked = ar.is_active;
+        document.getElementById('ar-modal-title').textContent = 'Edit Auto Reply';
+        document.getElementById('ar-modal').style.display = 'flex';
+    }
+
+    function closeArModal() {
+        document.getElementById('ar-modal').style.display = 'none';
+    }
+
+    const arForm = document.getElementById('ar-form');
+    if(arForm) {
+      arForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const id = document.getElementById('ar-id').value;
+          const payload = {
+              keyword: document.getElementById('ar-keyword').value,
+              response: document.getElementById('ar-response').value,
+              is_active: document.getElementById('ar-active').checked
+          };
+          const method = id ? 'PUT' : 'POST';
+          const url = id ? '/api/auto-replies/' + id : '/api/auto-replies';
+
+          try {
+              const res = await fetch(url, {
+                  method,
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+              });
+              const result = await res.json();
+              if(result.success) {
+                  closeArModal();
+                  fetchAutoReplies();
+              } else {
+                  alert('Gagal menyimpan: ' + result.error);
+              }
+          } catch(e) {
+              alert('Kesalahan jaringan');
+          }
+      });
+    }
+
+    async function deleteAutoReply(id) {
+        if(!confirm('Hapus auto-reply ini?')) return;
+        try {
+            const res = await fetch('/api/auto-replies/' + id, { method: 'DELETE' });
+            const result = await res.json();
+            if(result.success) fetchAutoReplies();
+            else alert('Gagal menghapus');
+        } catch(e) { alert('Kesalahan jaringan'); }
+    }
+
+    // ═══════════════════════════════════════════════
+    // SYNC AUTO REPLY PTSP KEMENAG
+    // ═══════════════════════════════════════════════
+    async function syncAutoReplyPTSP() {
+        const btn = document.getElementById('btn-sync');
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyinkronkan...';
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/auto-replies/sync', { method: 'POST' });
+            const result = await res.json();
+            if(result.success) {
+                alert(result.message);
+                fetchAutoReplies();
+            } else {
+                alert('Gagal sinkronisasi: ' + result.error);
+            }
+        } catch(e) {
+            alert('Kesalahan jaringan saat sinkronisasi');
+        } finally {
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+        }
+    }
+
+    // ═══════════════════════════════════════════════
+    // WEBHOOK TEST
+    // ═══════════════════════════════════════════════
+    async function testWebhook(event) {
+        const btn = event.currentTarget;
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menguji...';
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/webhook/test', { method: 'POST' });
+            const result = await res.json();
+            if(result.success) {
+                alert('Berhasil! Response n8n:\n' + JSON.stringify(result.data, null, 2));
+            } else {
+                alert('Gagal: ' + result.error);
+            }
+        } catch(e) {
+            alert('Error saat menguji webhook');
+        }
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+    }
+
 
     // ═══════════════════════════════════════════════
     // LOGOUT WA BOT

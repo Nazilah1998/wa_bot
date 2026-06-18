@@ -29,6 +29,42 @@ async function migrate() {
     console.log('Tabel wa_message_logs berhasil dipastikan.');
 
     await db.query(`
+      CREATE TABLE IF NOT EXISTS ptsp_whatsapp_outbox (
+        id SERIAL PRIMARY KEY,
+        phone TEXT NOT NULL,
+        message TEXT,
+        media_url TEXT,
+        media_type TEXT,
+        file_name TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        sent_at TIMESTAMP WITH TIME ZONE,
+        error_message TEXT
+      );
+    `);
+    console.log('Tabel ptsp_whatsapp_outbox berhasil dipastikan.');
+
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_outbox_status ON ptsp_whatsapp_outbox (status);
+    `);
+    console.log('Index outbox_status berhasil dipastikan.');
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS wa_webhook_logs (
+        id SERIAL PRIMARY KEY,
+        remote_jid TEXT,
+        message TEXT,
+        message_type TEXT,
+        status_code INT,
+        response TEXT,
+        duration_ms INT,
+        error TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+    console.log('Tabel wa_webhook_logs berhasil dipastikan.');
+
+    await db.query(`
       CREATE TABLE IF NOT EXISTS wa_auto_replies (
         id SERIAL PRIMARY KEY,
         keyword TEXT UNIQUE NOT NULL,
