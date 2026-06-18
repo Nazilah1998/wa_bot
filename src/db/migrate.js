@@ -3,6 +3,7 @@ const db = require('./index');
 async function migrate() {
   try {
     console.log('Menjalankan migrasi database...');
+    await db.query('SET search_path TO kemenag_bot, kemenag_ptsp, public');
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS wa_contacts (
